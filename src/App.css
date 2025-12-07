@@ -1,0 +1,104 @@
+#main {
+  max-height: 100%;
+  display: flex;
+  justify-self: center;
+  flex-direction: row;
+  gap: 2rem;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: var(--bg-l1);
+  padding: 1rem;
+  border-radius: 1rem;
+  box-sizing: border-box;
+}
+
+#field {
+  justify-content: center;
+  align-items: center;
+  aspect-ratio: 1 / 1;
+  max-height: calc(100vh - 2rem - 2rem);
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+}
+
+#point-list {
+  color: #efefef;
+  min-width: 200px;
+  font-size: 16px;
+}
+
+#points-list div {
+  display: flex;
+  flex-direction: column;
+}
+
+#edit {
+  min-width: 200px;
+}
+
+#path-control {
+  min-width: 200px;
+}
+
+/* Hide default number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.number-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.number-input .buttons {
+  display: flex;
+  flex-direction: row;
+  /* gap: 0.5rem; */
+  align-items: center;
+}
+
+.number-input .buttons input[type="number"] {
+  background-color: transparent;
+  border: none;
+  border-top: 1px solid var(--bg-l2);
+  border-bottom: 1px solid var(--bg-l2);
+  color: #efefef;
+  text-align: center;
+  width: 3rem;
+  outline: none;
+  box-sizing: border-box;
+  font-size: 16px;
+  font-weight: 500;
+  height: 2rem;
+}
+
+.number-input .buttons button:first-child {
+  border-radius: 0.5rem 0 0 0.5rem;
+}
+
+
+.number-input .buttons button:last-child {
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+
+.number-input .buttons button:hover,
+.number-input .buttons input[type="number"]:focus,
+.number-input .buttons input[type="number"]:hover {
+  border: 1px solid white;
+}
