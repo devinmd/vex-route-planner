@@ -3,6 +3,9 @@ import h2hFieldImage from './assets/V5RC-PushBack-H2H-TopDown.png'
 import skillsFieldImage from './assets/V5RC-PushBack-Skills-TopDown.png'
 import './App.css'
 
+import { Analytics } from "@vercel/analytics/next"
+
+
 const fieldImages = {
   h2h: h2hFieldImage,
   skills: skillsFieldImage
@@ -653,6 +656,7 @@ function App() {
 
   return (
     <>
+      <Analytics />
       <div id="app">
         <div id="topnav">
           <h3>VEX V5RC Route Planner</h3>
@@ -795,16 +799,19 @@ function App() {
             </div>
             <div id="path-control" className='container'>
               <h3>Route</h3>
-              Progress: {(robotProgress * 100).toFixed(0)}%
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={robotProgress * 100}
-                onChange={(e) => setRobotProgress(parseFloat(e.target.value) / 100)}
-                step="1"
-                style={{ width: '100%' }}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                Progress: {(robotProgress * 100).toFixed(0)}%
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={robotProgress * 100}
+                  onChange={(e) => setRobotProgress(parseFloat(e.target.value) / 100)}
+                  step="1"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
               <div>
 
                 <button
@@ -844,7 +851,7 @@ function App() {
             VEX V5RC Route Planner &copy; 2025
           </div>
           <div>v0.1.0</div>
-          <a href="https://github.com/devinmd/vex-route-planner">https://github.com/devinmd/vex-route-planner</a>
+          <a target='_blank' href="https://github.com/devinmd/vex-route-planner">https://github.com/devinmd/vex-route-planner</a>
         </div>
       </div>
     </>

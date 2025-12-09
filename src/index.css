@@ -79,3 +79,7 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+input[type="range"]{
+  margin: 0;
+}
