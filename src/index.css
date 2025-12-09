@@ -4,6 +4,7 @@
   font-weight: 400;
   font-size: 16px;
 
+  --bg-d1: #101015;
   --bg: #202024;
   --bg-l1: #303033;
   --bg-l2: #505051;
@@ -25,6 +26,12 @@ body {
   box-sizing: border-box;
 }
 
+h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 1rem 0 ;
+}
+
 h3 {
   font-size: 20px;
   font-weight: 600;
@@ -37,7 +44,8 @@ h4 {
   margin: 0;
 }
 
-button {
+button,
+select {
   background-color: transparent;
   border: 1px solid var(--bg-l2);
   border-radius: 0.5rem;
@@ -48,9 +56,12 @@ button {
   box-sizing: border-box;
   height: 2rem;
   color: #efefef;
+  outline: none;
   cursor: pointer;
+  transition: 30ms;
 }
 
-button:hover {
-  border-color: white;
+button:hover,
+select:hover {
+  border-color: #efefef;
 }

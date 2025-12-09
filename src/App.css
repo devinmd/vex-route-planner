@@ -14,6 +14,7 @@
   padding: 1rem;
   border-radius: 1rem;
   box-sizing: border-box;
+  border: 1px solid var(--bg-l2);
 }
 
 #field {
@@ -30,21 +31,14 @@ canvas {
 
 #point-list {
   color: #efefef;
-  min-width: 200px;
+  min-width: 220px;
   font-size: 16px;
 }
 
-#points-list div {
+#point-list div {
   display: flex;
   flex-direction: column;
-}
-
-#edit {
-  min-width: 200px;
-}
-
-#path-control {
-  min-width: 200px;
+  gap: 0.5rem;
 }
 
 /* Hide default number input spinners */
@@ -79,7 +73,7 @@ input[type="number"] {
   border-bottom: 1px solid var(--bg-l2);
   color: #efefef;
   text-align: center;
-  width: 3rem;
+  width: 4rem;
   outline: none;
   box-sizing: border-box;
   font-size: 16px;
@@ -91,11 +85,9 @@ input[type="number"] {
   border-radius: 0.5rem 0 0 0.5rem;
 }
 
-
 .number-input .buttons button:last-child {
   border-radius: 0 0.5rem 0.5rem 0;
 }
-
 
 .number-input .buttons button:hover,
 .number-input .buttons input[type="number"]:focus,

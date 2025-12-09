@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
-import fieldImage from './assets/V5RC-PushBack-H2H-TopDownH.png'
+import h2hFieldImage from './assets/V5RC-PushBack-H2H-TopDown.png'
+import skillsFieldImage from './assets/V5RC-PushBack-Skills-TopDown.png'
 import './App.css'
 
+const fieldImages = {
+  h2h: h2hFieldImage,
+  skills: skillsFieldImage
+}
 interface Point {
   x: number
   y: number
@@ -43,6 +48,7 @@ function App() {
   const [points, setPoints] = useState<Point[]>([])
   const [nextId, setNextId] = useState(0)
   const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [fieldImageSrc, setFieldImageSrc] = useState<string>('h2h')
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -52,7 +58,10 @@ function App() {
   const [botLength, setBotLength] = useState<number>(15)
   const [isRunning, setIsRunning] = useState<boolean>(false)
   const [botSpeed, setBotSpeed] = useState<number>(30) // field inches per second
-  const [showBot, setShowBot] = useState<boolean>(true)
+  const [showBot, setShowBot] = useState<boolean>(false)
+  const [showArrows, setShowArrows] = useState<boolean>(false)
+  const [showLines, setShowLines] = useState<boolean>(false)
+
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number | null>(null)
 
@@ -68,7 +77,7 @@ function App() {
   const LINE_OPACITY = 0.5
   const LINE_WIDTH = 5
   // robot
-  const ROBOT_COLOR = '#ff0000ff'
+  const ROBOT_COLOR = '#dfdfdf'
   const ROBOT_OPACITY = 0.5
   const BOT_BORDER_COLOR = '#000000'
   const BOT_BORDER_WIDTH_IN = 0 // inches
@@ -82,8 +91,9 @@ function App() {
 
   // Load the image
   useEffect(() => {
+    console.log('load image')
     const img = new Image()
-    img.src = fieldImage
+    img.src = fieldImages[fieldImageSrc as keyof typeof fieldImages]
     img.onload = () => {
       setImage(img)
       const canvas = canvasRef.current
@@ -92,10 +102,11 @@ function App() {
         canvas.height = img.height
       }
     }
-  }, [])
+  }, [fieldImageSrc])
 
   // Draw canvas
   useEffect(() => {
+    console.log('draw')
     const canvas = canvasRef.current
     if (!canvas || !image) return
 
@@ -151,7 +162,7 @@ function App() {
     ctx.drawImage(image, 0, 0)
 
     // Draw lines connecting points
-    if (points.length > 1) {
+    if (showLines && points.length > 1) {
       ctx.globalAlpha = LINE_OPACITY
       ctx.strokeStyle = LINE_COLOR
       ctx.lineWidth = LINE_WIDTH
@@ -207,7 +218,7 @@ function App() {
     })
 
     // Draw exit-direction arrows at each point (pointing toward the next point)
-    if (points.length > 0) {
+    if (showArrows && points.length > 0) {
       const pixelsPerInch = image.width / 144
       const arrowLenInches = ARROW_MAIN_LENGTH_IN // arrow length in inches
       const arrowLen = arrowLenInches * pixelsPerInch
@@ -282,7 +293,7 @@ function App() {
       const robotHeadPx = ARROW_HEAD_LENGTH_IN * pixelsPerInch
       drawArrow(robotData.x, robotData.y, frontX, frontY, ARROW_COLOR, ARROW_THICKNESS_PX, robotHeadPx, ARROW_HEAD_ANGLE, ARROW_OPACITY)
     }
-  }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, botLength, botWidth, showBot])
+  }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, botLength, botWidth, showBot, showLines, showArrows])
 
   // Simulation loop: animate robotProgress from 0 -> 1 based on botSpeed
   useEffect(() => {
@@ -606,14 +617,16 @@ function App() {
 
   return (
     <>
-      <div id="topnav"></div>
+      <div id="topnav">
+        {/* <h2>VEX Route Planner</h2> */}
+      </div>
       <div id="main">
         <div className="container" id="point-list">
           <h3>Points</h3>
           <div>
             {points.map((point, index) => (
               <div key={point.id}>
-                {index + 1}. ({Math.round(point.fieldX)}, {Math.round(point.fieldY)}) θ={Math.round(getEffectiveTheta(index))}°
+                {index + 1}.&nbsp;&nbsp;&nbsp;&nbsp;{Math.round(point.fieldX * 10)/ 10}, {Math.round(point.fieldY * 10) / 10}, {Math.round(getEffectiveTheta(index) * 10) / 10}°
               </div>
             ))}
           </div>
@@ -635,24 +648,36 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div id="configuration" className='container'>
             <h3>Configuration</h3>
+            <select onChange={(e) => setFieldImageSrc(e.target.value)}>
+              <option value="h2h">Vex V5RC Push Back H2H</option>
+              <option value="skills">Vex V5RC Push Back Skills</option>
+            </select>
+
+
             <div style={{ display: 'flex', gap: '1rem' }}>
 
               <NumberInput
-                label="Bot Length (in)"
+                label="Bot Length"
                 value={botLength}
                 onChange={setBotLength}
                 min={1}
               />
               <NumberInput
-                label="Bot Width (in)"
+                label="Bot Width"
                 value={botWidth}
                 onChange={setBotWidth}
                 min={1}
               />
             </div>
-            <div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               <button onClick={() => setShowBot(!showBot)}>
                 {showBot ? 'Hide Bot' : 'Show Bot'}
+              </button>
+              <button onClick={() => setShowLines(!showLines)}>
+                {showLines ? 'Hide Lines' : 'Show Lines'}
+              </button>
+              <button onClick={() => setShowArrows(!showArrows)}>
+                {showArrows ? 'Hide Arrows' : 'Show Arrows'}
               </button>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -682,23 +707,23 @@ function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <NumberInput
-                    label="X (in)"
+                    label="X"
                     value={selectedPoint.fieldX}
                     onChange={(v) => updateSelectedPointFieldCoords(v, selectedPoint.fieldY)}
                     step={1}
-                    min={-1000}
+                    min={-72}
                   />
                   <NumberInput
-                    label="Y (in)"
+                    label="Y"
                     value={selectedPoint.fieldY}
                     onChange={(v) => updateSelectedPointFieldCoords(selectedPoint.fieldX, v)}
-                    min={-1000}
+                    min={-72}
                     step={1}
                   />
                 </div>
 
                 <NumberInput
-                  label="θ (degrees)"
+                  label="θ"
                   value={Math.round(getEffectiveTheta(points.findIndex(p => p.id === selectedId)))}
                   onChange={(v) => {
                     const isLastPoint = selectedId !== null && selectedId === points[points.length - 1].id
@@ -716,8 +741,8 @@ function App() {
             )}
           </div>
           <div id="path-control" className='container'>
-            <h3>Path</h3>
-            Progress: {(robotProgress * 100).toFixed(1)}%
+            <h3>Route</h3>
+            Progress: {(robotProgress * 100).toFixed(0)}%
             <input
               type="range"
               min="0"
@@ -756,11 +781,9 @@ function App() {
               />
             </div>
 
-
           </div>
 
         </div>
-
 
       </div>
     </>
