@@ -3,7 +3,7 @@ import h2hFieldImage from './assets/V5RC-PushBack-H2H-TopDown.png'
 import skillsFieldImage from './assets/V5RC-PushBack-Skills-TopDown.png'
 import './App.css'
 
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/react"
 
 
 const fieldImages = {
