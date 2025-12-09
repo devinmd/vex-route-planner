@@ -58,9 +58,9 @@ function App() {
   const [botLength, setBotLength] = useState<number>(15)
   const [isRunning, setIsRunning] = useState<boolean>(false)
   const [botSpeed, setBotSpeed] = useState<number>(30) // field inches per second
-  const [showBot, setShowBot] = useState<boolean>(false)
-  const [showArrows, setShowArrows] = useState<boolean>(false)
-  const [showLines, setShowLines] = useState<boolean>(false)
+  const [showBot, setShowBot] = useState<boolean>(true)
+  const [showArrows, setShowArrows] = useState<boolean>(true)
+  const [showLines, setShowLines] = useState<boolean>(true)
 
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number | null>(null)
@@ -70,7 +70,7 @@ function App() {
   const POINT_COLOR = '#ff00fb'
   const POINT_BORDER_COLOR = '#ffffff'
   const POINT_BORDER_WIDTH = 0
-  const POINT_OPACITY = 0.5
+  const POINT_OPACITY = 0.6
   const TEXT_COLOR = '#ffffff'
   // path line
   const LINE_COLOR = '#00ff00'
@@ -349,6 +349,22 @@ function App() {
     }
   }, [isRunning, botSpeed, points, image])
 
+  // Handle Delete key to remove selected point
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only delete when the canvas is focused to avoid removing points while typing in inputs
+      const active = document.activeElement
+      const canvasEl = canvasRef.current as HTMLCanvasElement | null
+      if ((e.key === 'Backspace' || e.key === 'Delete') && selectedId !== null && active === canvasEl) {
+        setPoints(points.filter(p => p.id !== selectedId))
+        setSelectedId(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedId, points])
+
   // Get canvas coordinates from mouse event
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -539,6 +555,10 @@ function App() {
       setPoints([...points, newPoint])
       setNextId(nextId + 1)
       setSelectedId(nextId)
+      // focus the canvas so keyboard actions like Delete/Backspace only apply when canvas is focused
+      if (canvasRef.current && typeof (canvasRef.current as HTMLCanvasElement).focus === 'function') {
+        (canvasRef.current as HTMLCanvasElement).focus()
+      }
     }
   }
 
@@ -572,8 +592,11 @@ function App() {
     if (draggingId === null) return
 
     const { fieldX, fieldY } = pixelToFieldCoords(x, y)
+    // Round to 2 decimal places
+    const fieldXRounded = Math.round(fieldX * 100) / 100
+    const fieldYRounded = Math.round(fieldY * 100) / 100
     setPoints(points.map(p =>
-      p.id === draggingId ? { ...p, x, y, fieldX, fieldY, theta: p.theta } : p
+      p.id === draggingId ? { ...p, x, y, fieldX: fieldXRounded, fieldY: fieldYRounded, theta: p.theta } : p
     ))
   }
 
@@ -590,6 +613,19 @@ function App() {
   }
 
   const selectedPoint = selectedId !== null ? points.find(p => p.id === selectedId) : undefined
+
+  // copy selected point code
+  const handleCopySelectedPoint = () => {
+    if (!selectedPoint) return
+    // const selectedIndex = points.findIndex(p => p.id === selectedId)
+    // const theta = Math.round(getEffectiveTheta(selectedIndex) * 100) / 100
+    const x = Math.round(selectedPoint.fieldX * 100) / 100
+    const y = Math.round(selectedPoint.fieldY * 100) / 100
+    const line1 = `chassis.turnToPoint(${x}, ${y}, 500, {.forwards = true, .maxSpeed = 60}, false);`
+    const line2 = `chassis.moveToPoint(${x}, ${y}, 2000, {.forwards = true, .maxSpeed = 60}, false);`
+    const str = `${line1}\n${line2}`
+    navigator.clipboard.writeText(str)
+  }
 
   // Helper to get the effective theta for a point
   // For non-last points: angle to next point
@@ -617,174 +653,199 @@ function App() {
 
   return (
     <>
-      <div id="topnav">
-        {/* <h2>VEX Route Planner</h2> */}
-      </div>
-      <div id="main">
-        <div className="container" id="point-list">
-          <h3>Points</h3>
-          <div>
-            {points.map((point, index) => (
-              <div key={point.id}>
-                {index + 1}.&nbsp;&nbsp;&nbsp;&nbsp;{Math.round(point.fieldX * 10)/ 10}, {Math.round(point.fieldY * 10) / 10}, {Math.round(getEffectiveTheta(index) * 10) / 10}°
-              </div>
-            ))}
-          </div>
+      <div id="app">
+        <div id="topnav">
+          <h3>VEX V5RC Route Planner</h3>
         </div>
-        <div>
-          <div className="container" id="field">
-            <canvas
-              ref={canvasRef}
-              onClick={handleCanvasClick}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              style={{ cursor: draggingId !== null ? 'grabbing' : hoveredId !== null ? 'grab' : 'crosshair' }}
-            />
-          </div>
-        </div>
+        <div id="main">
+          <div className="container" id="point-list">
+            <h3>Points</h3>
+            {
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div id="configuration" className='container'>
-            <h3>Configuration</h3>
-            <select onChange={(e) => setFieldImageSrc(e.target.value)}>
-              <option value="h2h">Vex V5RC Push Back H2H</option>
-              <option value="skills">Vex V5RC Push Back Skills</option>
-            </select>
-
-
-            <div style={{ display: 'flex', gap: '1rem' }}>
-
-              <NumberInput
-                label="Bot Length"
-                value={botLength}
-                onChange={setBotLength}
-                min={1}
-              />
-              <NumberInput
-                label="Bot Width"
-                value={botWidth}
-                onChange={setBotWidth}
-                min={1}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button onClick={() => setShowBot(!showBot)}>
-                {showBot ? 'Hide Bot' : 'Show Bot'}
-              </button>
-              <button onClick={() => setShowLines(!showLines)}>
-                {showLines ? 'Hide Lines' : 'Show Lines'}
-              </button>
-              <button onClick={() => setShowArrows(!showArrows)}>
-                {showArrows ? 'Hide Arrows' : 'Show Arrows'}
-              </button>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={() => {
-                setPoints(points.map(p => ({
-                  ...p,
-                  fieldY: -p.fieldY,
-                  y: -p.y + (image ? image.height : 0)
-                })))
-              }}>
-                Flip X
-              </button>
-              <button onClick={() => {
-                setPoints(points.map(p => ({
-                  ...p,
-                  fieldX: -p.fieldX,
-                  x: -p.x + (image ? image.width : 0)
-                })))
-              }}>
-                Flip Y
-              </button>
-            </div>
-          </div>
-          <div className="container" id="edit">
-            <h3>Edit Point {selectedId !== null ? points.findIndex(p => p.id === selectedId) + 1 : ''}</h3>
-            {selectedPoint && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <NumberInput
-                    label="X"
-                    value={selectedPoint.fieldX}
-                    onChange={(v) => updateSelectedPointFieldCoords(v, selectedPoint.fieldY)}
-                    step={1}
-                    min={-72}
-                  />
-                  <NumberInput
-                    label="Y"
-                    value={selectedPoint.fieldY}
-                    onChange={(v) => updateSelectedPointFieldCoords(selectedPoint.fieldX, v)}
-                    min={-72}
-                    step={1}
-                  />
+              points.length < 1 && (
+                <div className="faded"><i>Click to add points</i></div>
+              )}
+            <div>
+              {points.map((point, index) => (
+                <div
+                  key={point.id}
+                  className={`point-item ${selectedId === point.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedId(point.id)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {index + 1}.&nbsp;&nbsp;&nbsp;&nbsp;{Math.round(point.fieldX * 10) / 10}, {Math.round(point.fieldY * 10) / 10}, {Math.round(getEffectiveTheta(index) * 10) / 10}°
                 </div>
+              ))}
+            </div>
+            <div style={{ marginTop: "none" }} >
+              <button disabled={selectedPoint ? false : true} onClick={handleCopySelectedPoint}>Copy Code for Selected Point</button>
+            </div>
+
+          </div>
+          <div>
+            <div className="container" id="field">
+              <canvas
+                ref={canvasRef}
+                tabIndex={0}
+                onClick={handleCanvasClick}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                style={{ cursor: draggingId !== null ? 'grabbing' : hoveredId !== null ? 'grab' : 'crosshair' }}
+                aria-label="VEX field canvas"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            <div id="configuration" className='container'>
+              <h3>Configuration</h3>
+              <select onChange={(e) => setFieldImageSrc(e.target.value)}>
+                <option value="h2h">Vex V5RC Push Back H2H</option>
+                <option value="skills">Vex V5RC Push Back Skills</option>
+              </select>
+
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
 
                 <NumberInput
-                  label="θ"
-                  value={Math.round(getEffectiveTheta(points.findIndex(p => p.id === selectedId)))}
-                  onChange={(v) => {
-                    const isLastPoint = selectedId !== null && selectedId === points[points.length - 1].id
-                    if (isLastPoint) {
-                      setPoints(points.map(p =>
-                        p.id === selectedId ? { ...p, theta: v } : p
-                      ))
-                    }
-                  }}
-                  min={0}
-                  step={5}
-                  disableButtons={selectedId !== null && selectedId !== points[points.length - 1].id}
+                  label="Bot Length"
+                  value={botLength}
+                  onChange={setBotLength}
+                  min={1}
+                />
+                <NumberInput
+                  label="Bot Width"
+                  value={botWidth}
+                  onChange={setBotWidth}
+                  min={1}
                 />
               </div>
-            )}
-          </div>
-          <div id="path-control" className='container'>
-            <h3>Route</h3>
-            Progress: {(robotProgress * 100).toFixed(0)}%
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={robotProgress * 100}
-              onChange={(e) => setRobotProgress(parseFloat(e.target.value) / 100)}
-              step="1"
-              style={{ width: '100%' }}
-            />
-            <div>
-
-              <button
-                onClick={() => {
-                  if (!isRunning) {
-                    // If at end, reset to start when running
-                    if (robotProgress >= 1) setRobotProgress(0)
-                    setIsRunning(true)
-                    setShowBot(true)
-                  } else {
-                    setIsRunning(false)
-                  }
-                }}
-              >
-                {isRunning ? 'Pause' : 'Run'}
-              </button>
-
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button onClick={() => setShowBot(!showBot)}>
+                  {showBot ? 'Hide Bot' : 'Show Bot'}
+                </button>
+                <button onClick={() => setShowLines(!showLines)}>
+                  {showLines ? 'Hide Lines' : 'Show Lines'}
+                </button>
+                <button onClick={() => setShowArrows(!showArrows)}>
+                  {showArrows ? 'Hide Arrows' : 'Show Arrows'}
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => {
+                  setPoints(points.map(p => ({
+                    ...p,
+                    fieldY: -p.fieldY,
+                    y: -p.y + (image ? image.height : 0)
+                  })))
+                }}>
+                  Flip X
+                </button>
+                <button onClick={() => {
+                  setPoints(points.map(p => ({
+                    ...p,
+                    fieldX: -p.fieldX,
+                    x: -p.x + (image ? image.width : 0)
+                  })))
+                }}>
+                  Flip Y
+                </button>
+              </div>
             </div>
+            <div className="container" id="edit">
+              <h3>Edit Point {selectedId !== null ? points.findIndex(p => p.id === selectedId) + 1 : ''}</h3>
+              {selectedPoint && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <NumberInput
+                      label="X"
+                      value={selectedPoint.fieldX}
+                      onChange={(v) => updateSelectedPointFieldCoords(v, selectedPoint.fieldY)}
+                      step={1}
+                      min={-72}
+                    />
+                    <NumberInput
+                      label="Y"
+                      value={selectedPoint.fieldY}
+                      onChange={(v) => updateSelectedPointFieldCoords(selectedPoint.fieldX, v)}
+                      min={-72}
+                      step={1}
+                    />
+                  </div>
 
-            <div>
-              <NumberInput
-                label="Speed (in/s)"
-                value={botSpeed}
-                onChange={(v) => setBotSpeed(Math.max(1, v))}
-                min={1}
-                step={5}
+                  <NumberInput
+                    label="θ"
+                    value={Math.round(getEffectiveTheta(points.findIndex(p => p.id === selectedId)))}
+                    onChange={(v) => {
+                      const isLastPoint = selectedId !== null && selectedId === points[points.length - 1].id
+                      if (isLastPoint) {
+                        setPoints(points.map(p =>
+                          p.id === selectedId ? { ...p, theta: v } : p
+                        ))
+                      }
+                    }}
+                    min={0}
+                    step={5}
+                    disableButtons={selectedId !== null && selectedId !== points[points.length - 1].id}
+                  />
+                </div>
+              )}
+            </div>
+            <div id="path-control" className='container'>
+              <h3>Route</h3>
+              Progress: {(robotProgress * 100).toFixed(0)}%
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={robotProgress * 100}
+                onChange={(e) => setRobotProgress(parseFloat(e.target.value) / 100)}
+                step="1"
+                style={{ width: '100%' }}
               />
+              <div>
+
+                <button
+                  onClick={() => {
+                    if (!isRunning) {
+                      // If at end, reset to start when running
+                      if (robotProgress >= 1) setRobotProgress(0)
+                      setIsRunning(true)
+                      setShowBot(true)
+                    } else {
+                      setIsRunning(false)
+                    }
+                  }}
+                >
+                  {isRunning ? 'Pause' : 'Run'}
+                </button>
+
+              </div>
+
+              <div>
+                <NumberInput
+                  label="Speed (in/s)"
+                  value={botSpeed}
+                  onChange={(v) => setBotSpeed(Math.max(1, v))}
+                  min={1}
+                  step={5}
+                />
+              </div>
+
             </div>
 
           </div>
 
         </div>
-
+        <div id="footer">
+          <div>
+            VEX V5RC Route Planner &copy; 2025
+          </div>
+          <div>v0.1.0</div>
+          <a href="https://github.com/devinmd/vex-route-planner">https://github.com/devinmd/vex-route-planner</a>
+        </div>
       </div>
     </>
   )

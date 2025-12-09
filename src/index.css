@@ -9,7 +9,9 @@
   --bg-l1: #303033;
   --bg-l2: #505051;
 
-  color: #efefef;
+  --text: #efefef;
+  --text-faded: #9f9f9f;
+  color: var(--text);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -17,19 +19,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+
 body {
   margin: 0;
-  display: flex;
-  padding: 2rem;
   background-color: var(--bg);
-  justify-content: center;
-  box-sizing: border-box;
+  width: 100vw;
 }
 
 h2 {
   font-size: 24px;
   font-weight: 700;
-  margin: 0 0 1rem 0 ;
 }
 
 h3 {
@@ -51,17 +50,32 @@ select {
   border-radius: 0.5rem;
   min-width: 2rem;
   font-weight: 500;
-  padding: 0 0.5rem;
+  padding: 0.25rem 0.5rem;
   font-size: 16px;
   box-sizing: border-box;
-  height: 2rem;
-  color: #efefef;
+  min-height: 2rem;
+  color: var(--text);
   outline: none;
   cursor: pointer;
-  transition: 30ms;
+  transition: 50ms;
 }
 
 button:hover,
 select:hover {
-  border-color: #efefef;
+  border-color: var(--text);
+}
+
+button:disabled {
+  color: var(--text-faded);
+  border-color: var(--bg-l2);
+  cursor:auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }

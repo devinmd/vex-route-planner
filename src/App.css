@@ -1,7 +1,21 @@
+#topnav {
+  width: 100vw;
+  height: 3rem;
+  background-color: var(--bg-l1);
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--bg-l2);
+  box-sizing: border-box;
+  color: var(--text);
+}
+
 #main {
   max-height: 100%;
   display: flex;
   justify-self: center;
+  margin: 2rem;
   flex-direction: row;
   gap: 2rem;
 }
@@ -21,7 +35,7 @@
   justify-content: center;
   align-items: center;
   aspect-ratio: 1 / 1;
-  max-height: calc(100vh - 2rem - 2rem);
+  max-height: calc(100vh - 2rem - 2rem - 3rem);
 }
 
 canvas {
@@ -30,7 +44,7 @@ canvas {
 }
 
 #point-list {
-  color: #efefef;
+  color: var(--text);
   min-width: 220px;
   font-size: 16px;
 }
@@ -71,7 +85,7 @@ input[type="number"] {
   border: none;
   border-top: 1px solid var(--bg-l2);
   border-bottom: 1px solid var(--bg-l2);
-  color: #efefef;
+  color: var(--text);
   text-align: center;
   width: 4rem;
   outline: none;
@@ -88,9 +102,48 @@ input[type="number"] {
 .number-input .buttons button:last-child {
   border-radius: 0 0.5rem 0.5rem 0;
 }
+.faded {
+  color: var(--text-faded);
+}
 
-.number-input .buttons button:hover,
-.number-input .buttons input[type="number"]:focus,
-.number-input .buttons input[type="number"]:hover {
-  border: 1px solid white;
+.point-item {
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  transition: 50ms;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.point-item:hover {
+  /* background-color: var(--bg-l2); */
+  border: 1px solid var(--bg-l2);
+}
+
+.point-item.selected {
+  /* background-color: var(--bg-l2); */
+  /* border-left: 3px solid var(--text); */
+  /* padding-left: calc(0.5rem - 3px); */
+  background-color: var(--bg-l2);
+  /* border: 1px solid var(--text); */
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  align-items: center;
+}
+
+#footer {
+  color: var(--text-faded);
+  align-items: center;
+  display: flex;
+  height: auto;
+  padding: 0 2rem;
+  font-size: 12px;
+  justify-content: center;
+  margin-top: auto;
+  box-sizing: border-box;
+  height: 3rem;
+  gap: 1rem;
 }
