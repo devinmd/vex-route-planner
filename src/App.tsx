@@ -757,13 +757,13 @@ function App() {
               <div style={{ display: 'flex', gap: '1rem' }}>
 
                 <NumberInput
-                  label="Bot Length"
+                  label="Bot Length (in)"
                   value={botLength}
                   onChange={setBotLength}
                   min={1}
                 />
                 <NumberInput
-                  label="Bot Width"
+                  label="Bot Width (in)"
                   value={botWidth}
                   onChange={setBotWidth}
                   min={1}
@@ -835,21 +835,21 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <NumberInput
-                      label="X"
+                      label="X (in)"
                       value={selectedPoint.fieldX}
                       onChange={(v) => updateSelectedPointFieldCoords(v, selectedPoint.fieldY)}
                       step={1}
                       min={-72}
                     />
                     <NumberInput
-                      label="Y"
+                      label="Y (in)"
                       value={selectedPoint.fieldY}
                       onChange={(v) => updateSelectedPointFieldCoords(selectedPoint.fieldX, v)}
                       min={-72}
                       step={1}
                     />
                     <NumberInput
-                      label="θ"
+                      label="θ (°)"
                       value={Math.round(getEffectiveTheta(points.findIndex(p => p.id === selectedId)))}
                       onChange={(v) => {
                         const isLastPoint = selectedId !== null && selectedId === points[points.length - 1].id
