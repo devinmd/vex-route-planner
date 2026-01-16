@@ -692,6 +692,64 @@ function App() {
       <div id="app">
         <div id="topnav">
           <h3>VEX V5RC Route Builder</h3>
+          <button
+            onClick={() => {
+              const dataStr = JSON.stringify(points, null, 2)
+              const dataBlob = new Blob([dataStr], { type: 'application/json' })
+              const url = URL.createObjectURL(dataBlob)
+              const link = document.createElement('a')
+              link.href = url
+              const now = new Date()
+              const dateStr = now.toISOString().split('T')[0].replace(/-/g, '')
+              link.download = `${dateStr}-v5rc-route.json`
+              document.body.appendChild(link)
+              link.click()
+              document.body.removeChild(link)
+              URL.revokeObjectURL(url)
+            }}
+            style={{
+              marginLeft: 'auto',
+            }}
+          >
+            Download Route as JSON
+          </button>
+          <input
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            id="route-import-input"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                const reader = new FileReader()
+                reader.onload = (event) => {
+                  try {
+                    const importedPoints = JSON.parse(event.target?.result as string)
+                    if (Array.isArray(importedPoints)) {
+                      setPoints(importedPoints)
+                      setSelectedId(null)
+                      // Reset nextId to be higher than all imported ids
+                      const maxId = Math.max(...importedPoints.map((p: Point) => p.id), -1)
+                      setNextId(maxId + 1)
+                    }
+                  } catch (err) {
+                    alert('Failed to parse JSON file')
+                  }
+                }
+                reader.readAsText(file)
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              document.getElementById('route-import-input')?.click()
+            }}
+            style={{
+              marginLeft: '0.5rem',
+            }}
+          >
+            Import Route from JSON
+          </button>
         </div>
         <div id="main">
 
