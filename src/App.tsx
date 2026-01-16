@@ -116,48 +116,6 @@ function App() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Helper to draw an arrow from (fromX,fromY) -> (toX,toY)
-    const drawArrow = (
-      fromX: number,
-      fromY: number,
-      toX: number,
-      toY: number,
-      color = ARROW_COLOR,
-      lineWidth = ARROW_THICKNESS_PX,
-      headLenPx?: number,
-      sideAngle = ARROW_HEAD_ANGLE,
-    ) => {
-      const angle = Math.atan2(toY - fromY, toX - fromX)
-      ctx.save()
-      ctx.strokeStyle = color
-      ctx.fillStyle = color
-      ctx.lineWidth = lineWidth
-      ctx.lineCap = 'round'
-
-      // main line
-      ctx.beginPath()
-      ctx.moveTo(fromX, fromY)
-      ctx.lineTo(toX, toY)
-      ctx.stroke()
-
-      // arrow head (triangle)
-      const len = Math.hypot(toX - fromX, toY - fromY)
-      const computedHead = headLenPx != null ? headLenPx : Math.min(20, Math.max(8, len * 0.18))
-
-      ctx.beginPath()
-      ctx.moveTo(toX, toY)
-      ctx.lineTo(
-        toX - computedHead * Math.cos(angle - sideAngle),
-        toY - computedHead * Math.sin(angle - sideAngle)
-      )
-      ctx.lineTo(
-        toX - computedHead * Math.cos(angle + sideAngle),
-        toY - computedHead * Math.sin(angle + sideAngle)
-      )
-      ctx.closePath()
-      ctx.fill()
-      ctx.restore()
-    }
 
     // Draw background image
     ctx.drawImage(image, 0, 0)
@@ -1001,7 +959,7 @@ function App() {
                   {isRunning ? 'Pause' : 'Run'}
                 </button>
               </div>
-{/* 
+              {/* 
               <div style={{ marginTop: '0.5rem' }}>
               Total Time: 
                 {(() => {
