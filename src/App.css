@@ -1,12 +1,11 @@
 #topnav {
   width: 100vw;
   height: 3rem;
-  background-color: var(--bg-l1);
   display: flex;
   align-items: center;
   padding: 0 2rem;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--bg-l2);
+  border-bottom: 1px solid var(--bg-l1);
   box-sizing: border-box;
   color: var(--text);
 }
@@ -15,20 +14,17 @@
   max-height: 100%;
   display: flex;
   justify-self: center;
-  margin: 2rem;
   flex-direction: row;
-  gap: 2rem;
 }
 
 .container {
   display: flex;
+  flex-grow: 1;
   flex-direction: column;
   gap: 1rem;
-  background-color: var(--bg-l1);
   padding: 1rem;
-  border-radius: 1rem;
   box-sizing: border-box;
-  border: 1px solid var(--bg-l2);
+  border: 1px solid var(--bg-l1);
 }
 
 #field {
@@ -45,14 +41,20 @@ canvas {
 
 #point-list {
   color: var(--text);
-  min-width: 220px;
   font-size: 16px;
+  min-width: 160px;
+
 }
 
 #point-list div {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+}
+
+#code-preview {
+  min-width: 240px;
 }
 
 /* Hide default number input spinners */
@@ -123,7 +125,7 @@ input[type="number"] {
   /* background-color: var(--bg-l2); */
   /* border-left: 3px solid var(--text); */
   /* padding-left: calc(0.5rem - 3px); */
-  background-color: var(--bg-l2);
+  background-color: #20508080;
   /* border: 1px solid var(--text); */
 }
 

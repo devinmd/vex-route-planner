@@ -4,10 +4,9 @@
   font-weight: 400;
   font-size: 16px;
 
-  --bg-d1: #101015;
   --bg: #202024;
   --bg-l1: #303033;
-  --bg-l2: #505051;
+  --bg-l2: #505052;
 
   --text: #efefef;
   --text-faded: #9f9f9f;
@@ -82,4 +81,8 @@ a:hover {
 
 input[type="range"]{
   margin: 0;
+}
+
+pre {
+  font-size: 12px;
 }

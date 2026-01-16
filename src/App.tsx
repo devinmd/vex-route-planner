@@ -1,79 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
-import h2hFieldImage from './assets/V5RC-PushBack-H2H-TopDown.png'
-import skillsFieldImage from './assets/V5RC-PushBack-Skills-TopDown.png'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import './App.css'
-
 import { Analytics } from "@vercel/analytics/react"
-
-
-const fieldImages = {
-  h2h: h2hFieldImage,
-  skills: skillsFieldImage
-}
-interface Point {
-  x: number
-  y: number
-  fieldX: number
-  fieldY: number
-  id: number
-  theta: number // heading in degrees: 0=up, 90=right, 180=down, 270=left
-  timeout: number // in milliseconds, default 1000
-  speed: number // 1-127, default 70
-}
-
-interface NumberInputProps {
-  label: string
-  value: number
-  onChange: (value: number) => void
-  min?: number
-  max?: number
-  step?: number
-}
-
-function NumberInput({ label, value, onChange, min = 1, max, step = 1, disableButtons = false }: NumberInputProps & { disableButtons?: boolean }) {
-  const [inputValue, setInputValue] = useState(String(value))
-
-  // Sync internal state when value prop changes
-  useEffect(() => {
-    setInputValue(String(value))
-  }, [value])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (disableButtons) return
-
-    const str = e.target.value
-    setInputValue(str)
-
-    // Only update parent if it's a valid number
-    const num = parseFloat(str)
-    if (!isNaN(num)) {
-      let finalValue = num
-      if (finalValue < min) finalValue = min
-      if (max !== undefined && finalValue > max) finalValue = max
-      onChange(finalValue)
-    }
-  }
-
-  return (
-    <div className='number-input'>
-      {label}
-      <div className='buttons'>
-        <button onClick={() => onChange(Math.max(min, value - step))} disabled={disableButtons}>-</button>
-        <input
-          type="number"
-          value={inputValue}
-          onChange={handleInputChange}
-          step={step}
-          min={min}
-          max={max}
-          readOnly={disableButtons}
-          style={{ cursor: disableButtons ? 'default' : 'text' }}
-        />
-        <button onClick={() => onChange(max !== undefined ? Math.min(max, value + step) : value + step)} disabled={disableButtons}>+</button>
-      </div>
-    </div>
-  )
-}
+import { fieldImages } from './constants'
+import type { Point } from './types'
+import { NumberInput } from './components/NumberInput'
+import { IconButton } from './components/IconButton'
+import { SelectInput } from './components/SelectInput'
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -90,10 +22,51 @@ function App() {
   const [botWidth, setBotWidth] = useState<number>(15)
   const [botLength, setBotLength] = useState<number>(15)
   const [isRunning, setIsRunning] = useState<boolean>(false)
-  const [botSpeed, setBotSpeed] = useState<number>(40) // field inches per second
   const [showBot, setShowBot] = useState<boolean>(true)
   const [showArrows, setShowArrows] = useState<boolean>(true)
   const [showLines, setShowLines] = useState<boolean>(true)
+
+  // Helper to get the effective theta for a point
+  // For non-last points: angle to next point
+  // For last point: use stored theta value
+  const getEffectiveTheta = (index: number): number => {
+    if (index < points.length - 1) {
+      // Calculate angle to next point in degrees
+      const dx = points[index + 1].x - points[index].x
+      const dy = points[index + 1].y - points[index].y
+      // In canvas: positive Y is down. atan2(dy, dx) gives:
+      // 0 = right, π/2 = down, π/-π = left, -π/2 = up
+      // We want: 0 = up, 90 = right, 180 = down, 270 = left
+      // So: theta = (atan2 + π/2) * 180/π, normalized to 0-360
+      const radians = Math.atan2(dy, dx)
+      let degrees = ((radians + Math.PI / 2) * 180) / Math.PI
+      // Normalize to 0-360
+      while (degrees < 0) degrees += 360
+      while (degrees >= 360) degrees -= 360
+      return degrees
+    } else {
+      // Last point uses stored theta
+      return points[index].theta
+    }
+  }
+
+  const generatedCodeLines = useMemo(() => {
+    if (points.length === 0) return []
+    const lines: { line: string; pointIndex: number | null }[] = []
+    points.forEach((point, index) => {
+      const x = Math.round(point.fieldX * 100) / 100
+      const y = Math.round(point.fieldY * 100) / 100
+      if (index === 0) {
+        const theta = Math.round(getEffectiveTheta(0) * 100) / 100
+        lines.push({ line: `chassis.setPose(${x}, ${y}, ${theta});`, pointIndex: index })
+      } else {
+        lines.push({ line: "\n", pointIndex: -1 })
+        lines.push({ line: `chassis.turnToPoint(${x}, ${y});`, pointIndex: index })
+        lines.push({ line: `chassis.moveToPoint(${x}, ${y});`, pointIndex: index })
+      }
+    })
+    return lines
+  }, [points])
 
   const rafRef = useRef<number | null>(null)
   const lastTimeRef = useRef<number | null>(null)
@@ -124,7 +97,7 @@ function App() {
 
   // Load the image
   useEffect(() => {
-    console.log('load image')
+    // console.log('load image')
     const img = new Image()
     img.src = fieldImages[fieldImageSrc as keyof typeof fieldImages]
     img.onload = () => {
@@ -139,7 +112,6 @@ function App() {
 
   // Draw canvas
   useEffect(() => {
-    console.log('draw')
     const canvas = canvasRef.current
     if (!canvas || !image) return
 
@@ -247,7 +219,7 @@ function App() {
       ctx.font = 'bold 40px Arial'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText((index + 1).toString(), center.x, center.y)
+      ctx.fillText((index).toString(), center.x, center.y)
     })
 
     // Draw exit-direction arrows at each point (pointing toward the next point)
@@ -328,7 +300,25 @@ function App() {
     }
   }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, lastHoveredProgress, botLength, botWidth, showBot, showLines, showArrows, isRunning])
 
-  // Simulation loop: animate robotProgress from 0 -> 1 based on botSpeed
+  // Calculate total simulation duration from point timeouts
+  const getTotalSimulationDuration = () => {
+    if (points.length < 2) return 0
+    // Sum all timeout values (they're in milliseconds)
+    let totalMs = 0
+    for (let i = 0; i < points.length - 1; i++) {
+      totalMs += points[i + 1].timeout
+    }
+    return totalMs
+  }
+
+  // Get the progress along path based on time elapsed
+  const getProgressFromElapsedTime = (elapsedMs: number) => {
+    if (points.length < 2) return 0
+    const totalMs = getTotalSimulationDuration()
+    return totalMs > 0 ? Math.min(1, elapsedMs / totalMs) : 0
+  }
+
+  // Simulation loop: animate robotProgress from 0 -> 1 based on point timeouts
   useEffect(() => {
     if (!isRunning) {
       if (rafRef.current) {
@@ -339,38 +329,27 @@ function App() {
       return
     }
 
-    // Calculate total path length in field inches
-    let totalPathLength = 0
-    if (points.length > 1 && image) {
-      const pixelsPerInch = image.width / 144
-      for (let i = 0; i < points.length - 1; i++) {
-        const dx = points[i + 1].x - points[i].x
-        const dy = points[i + 1].y - points[i].y
-        const pixelLength = Math.sqrt(dx * dx + dy * dy)
-        totalPathLength += pixelLength / pixelsPerInch
-      }
+    const totalMs = getTotalSimulationDuration()
+    if (totalMs === 0) {
+      setIsRunning(false)
+      return
     }
 
-    // Duration = path length / speed (in seconds)
-    const simDuration = totalPathLength > 0 ? totalPathLength / botSpeed : 1
+    const startTime = performance.now()
 
     const step = (time: number) => {
-      if (lastTimeRef.current == null) lastTimeRef.current = time
-      const delta = time - (lastTimeRef.current as number)
-      lastTimeRef.current = time
+      const elapsedMs = time - startTime
+      const progress = getProgressFromElapsedTime(elapsedMs)
 
-      setRobotProgress(prev => {
-        const inc = delta / (simDuration * 1000)
-        const next = Math.min(1, prev + inc)
-        if (next >= 1) {
-          // stop when reached end and hide bot
-          setIsRunning(false)
-          setShowBot(false)
-        }
-        return next
-      })
+      setRobotProgress(progress)
 
-      rafRef.current = requestAnimationFrame(step)
+      if (progress >= 1) {
+        // stop when reached end and hide bot
+        setIsRunning(false)
+        setShowBot(false)
+      } else {
+        rafRef.current = requestAnimationFrame(step)
+      }
     }
 
     rafRef.current = requestAnimationFrame(step)
@@ -378,9 +357,8 @@ function App() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       rafRef.current = null
-      lastTimeRef.current = null
     }
-  }, [isRunning, botSpeed, points, image])
+  }, [isRunning, points])
 
   // Handle Delete key to remove selected point
   useEffect(() => {
@@ -397,6 +375,11 @@ function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedId, points])
+
+  // Log points whenever they change
+  useEffect(() => {
+    console.log(points)
+  }, [points])
 
   // Get canvas coordinates from mouse event
   const getCanvasCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -653,41 +636,7 @@ function App() {
   const selectedPoint = selectedId !== null ? points.find(p => p.id === selectedId) : undefined
 
   // copy selected point code
-  const handleCopySelectedPoint = () => {
-    if (!selectedPoint) return
-    // const selectedIndex = points.findIndex(p => p.id === selectedId)
-    // const theta = Math.round(getEffectiveTheta(selectedIndex) * 100) / 100
-    const x = Math.round(selectedPoint.fieldX * 100) / 100
-    const y = Math.round(selectedPoint.fieldY * 100) / 100
-    const line1 = `chassis.turnToPoint(${x}, ${y}, 500, {.forwards = true, .maxSpeed = ${selectedPoint.speed}}, false);`
-    const line2 = `chassis.moveToPoint(${x}, ${y}, ${selectedPoint.timeout}, {.forwards = true, .maxSpeed = ${selectedPoint.speed}}, false);`
-    const str = `${line1}\n${line2}`
-    navigator.clipboard.writeText(str)
-  }
 
-  // Helper to get the effective theta for a point
-  // For non-last points: angle to next point
-  // For last point: use stored theta value
-  const getEffectiveTheta = (index: number): number => {
-    if (index < points.length - 1) {
-      // Calculate angle to next point in degrees
-      const dx = points[index + 1].x - points[index].x
-      const dy = points[index + 1].y - points[index].y
-      // In canvas: positive Y is down. atan2(dy, dx) gives:
-      // 0 = right, π/2 = down, π/-π = left, -π/2 = up
-      // We want: 0 = up, 90 = right, 180 = down, 270 = left
-      // So: theta = (atan2 + π/2) * 180/π, normalized to 0-360
-      const radians = Math.atan2(dy, dx)
-      let degrees = ((radians + Math.PI / 2) * 180) / Math.PI
-      // Normalize to 0-360
-      while (degrees < 0) degrees += 360
-      while (degrees >= 360) degrees -= 360
-      return degrees
-    } else {
-      // Last point uses stored theta
-      return points[index].theta
-    }
-  }
 
   return (
     <>
@@ -697,13 +646,36 @@ function App() {
           <h3>VEX V5RC Route Planner</h3>
         </div>
         <div id="main">
+          <div className="container" id="code-preview">
+            <h3>Code</h3>
+            <pre style={{ backgroundColor: 'transparent', lineHeight: '1.5' }}>
+              {generatedCodeLines.map((item, i) => {
+                const selectedPointIndex = selectedId !== null ? points.findIndex(p => p.id === selectedId) : -1
+                const isHighlighted = item.pointIndex === selectedPointIndex && selectedPointIndex !== -1
+                return (
+                  <span
+                    key={i}
+                    onClick={() => {
+                      if (item.pointIndex !== null) {
+                        setSelectedId(points[item.pointIndex].id)
+                      }
+                    }}
+                    style={{
+                      backgroundColor: isHighlighted ? '#20508080' : 'transparent',
+                      display: 'block',
+                      borderRadius: '0.25rem',
+                      cursor: item.pointIndex !== null ? 'pointer' : 'default',
+                      padding: '0.1rem 0.25rem'
+                    }}
+                  >
+                    {item.line}
+                  </span>
+                )
+              })}
+            </pre>
+          </div>
           <div className="container" id="point-list">
             <h3>Points</h3>
-            {
-
-              points.length < 1 && (
-                <div className="faded"><i>Click to add points</i></div>
-              )}
             <div>
               {points.map((point, index) => (
                 <div
@@ -713,7 +685,7 @@ function App() {
                   style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'space-between' }}>
-                    <span><strong>{index + 1}</strong></span>
+                    <span><strong>{index}</strong></span>
                     <div style={{ display: 'flex', gap: '0rem' }}>
                       <span>{Math.round(point.fieldX * 10) / 10}, {Math.round(point.fieldY * 10) / 10}</span>
                       <span>θ: {Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
@@ -724,9 +696,10 @@ function App() {
                 </div>
               ))}
             </div>
+            {/*             
             <div style={{ marginTop: "none" }} >
               <button disabled={selectedPoint ? false : true} onClick={handleCopySelectedPoint}>Copy Code for Selected Point</button>
-            </div>
+            </div> */}
 
           </div>
           <div>
@@ -745,14 +718,20 @@ function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+
             <div id="configuration" className='container'>
               <h3>Configuration</h3>
-              <select onChange={(e) => setFieldImageSrc(e.target.value)}>
-                <option value="h2h">Vex V5RC Push Back H2H</option>
-                <option value="skills">Vex V5RC Push Back Skills</option>
-              </select>
 
+              <SelectInput
+                label="Field"
+                value={fieldImageSrc}
+                onChange={setFieldImageSrc}
+                options={[
+                  { value: "h2h", label: "Vex V5RC Push Back H2H" },
+                  { value: "skills", label: "Vex V5RC Push Back Skills" }
+                ]}
+              />
 
               <div style={{ display: 'flex', gap: '1rem' }}>
 
@@ -761,47 +740,42 @@ function App() {
                   value={botLength}
                   onChange={setBotLength}
                   min={1}
+                  step={0.5}
                 />
                 <NumberInput
                   label="Bot Width (in)"
                   value={botWidth}
                   onChange={setBotWidth}
                   min={1}
+                  step={0.5}
                 />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button
+                <IconButton
                   onClick={() => setShowBot(!showBot)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <img
-                    src={showBot ? "/robot-off.svg" : "/robot.svg"}
-                    style={{ width: 20, height: 20, pointerEvents: 'none', filter: 'brightness(0) invert(0.95)' }}
-                  />
-                  {showBot ? 'Hide Bot' : 'Show Bot'}
-                </button>
-                <button onClick={() => setShowLines(!showLines)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <img
-                    src={showLines ? '/arrow-narrow-up-dashed.svg' : '/arrow-narrow-up.svg'}
-                    style={{ width: 18, height: 18, pointerEvents: 'none', filter: 'brightness(0) invert(0.95)' }}
-                  />
-                  {showLines ? 'Hide Lines' : 'Show Lines'}
-                </button>
-                <button
+                  iconSrc="/robot.svg"
+                  activeIconSrc="/robot-off.svg"
+                  text={showBot ? 'Hide Bot' : 'Show Bot'}
+                  isActive={showBot}
+                  size={20}
+                />
+                <IconButton
+                  onClick={() => setShowLines(!showLines)}
+                  iconSrc="/arrow-narrow-up.svg"
+                  activeIconSrc="/arrow-narrow-up-dashed.svg"
+                  text={showLines ? 'Hide Lines' : 'Show Lines'}
+                  isActive={showLines}
+                />
+                <IconButton
                   onClick={() => setShowArrows(!showArrows)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <img
-                    src={showArrows ? '/arrow-big-right.svg' : '/arrow-big-right-filled.svg'}
-                    style={{ width: 18, height: 18, pointerEvents: 'none', filter: 'brightness(0) invert(0.95)' }}
-                  />
-                  {showArrows ? 'Hide Arrows' : 'Show Arrows'}
-                </button>
+                  iconSrc="/arrow-big-right-filled.svg"
+                  activeIconSrc="/arrow-big-right.svg"
+                  text={showArrows ? 'Hide Arrows' : 'Show Arrows'}
+                  isActive={showArrows}
+                />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
+                <IconButton
                   onClick={() => {
                     setPoints(points.map(p => ({
                       ...p,
@@ -809,12 +783,10 @@ function App() {
                       y: -p.y + (image ? image.height : 0)
                     })))
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <img src="/flip-horizontal.svg" style={{ width: 18, height: 18, pointerEvents: 'none', filter: 'brightness(0) invert(0.95)' }} />
-                  Flip X
-                </button>
-                <button
+                  iconSrc="/flip-horizontal.svg"
+                  text="Flip X"
+                />
+                <IconButton
                   onClick={() => {
                     setPoints(points.map(p => ({
                       ...p,
@@ -822,15 +794,13 @@ function App() {
                       x: -p.x + (image ? image.width : 0)
                     })))
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <img src="/flip-vertical.svg" style={{ width: 18, height: 18, pointerEvents: 'none', filter: 'brightness(0) invert(0.95)' }} />
-                  Flip Y
-                </button>
+                  iconSrc="/flip-vertical.svg"
+                  text="Flip Y"
+                />
               </div>
             </div>
             <div className="container" id="edit">
-              <h3>Edit Point {selectedId !== null ? points.findIndex(p => p.id === selectedId) + 1 : ''}</h3>
+              <h3>Edit Point {selectedId !== null ? points.findIndex(p => p.id === selectedId) : ''}</h3>
               {selectedPoint && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div style={{ display: 'flex', gap: '1rem' }}>
@@ -902,14 +872,6 @@ function App() {
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'end' }}>
-                <NumberInput
-                  label="Speed (in/s)"
-                  value={botSpeed}
-                  onChange={(v) => setBotSpeed(Math.max(1, v))}
-                  min={1}
-                  step={5}
-                />
-
                 <button
                   onClick={() => {
                     if (!isRunning) {
@@ -935,18 +897,9 @@ function App() {
               <div style={{ marginTop: '0.5rem' }}>
                 <strong>Total Time: </strong>
                 {(() => {
-                  let totalPathLength = 0
-                  if (points.length > 1 && image) {
-                    const pixelsPerInch = image.width / 144
-                    for (let i = 0; i < points.length - 1; i++) {
-                      const dx = points[i + 1].x - points[i].x
-                      const dy = points[i + 1].y - points[i].y
-                      const pixelLength = Math.sqrt(dx * dx + dy * dy)
-                      totalPathLength += pixelLength / pixelsPerInch
-                    }
-                  }
-                  const totalTime = botSpeed > 0 ? totalPathLength / botSpeed : 0
-                  return `${totalTime.toFixed(1)}s`
+                  const totalMs = getTotalSimulationDuration()
+                  const totalSeconds = totalMs / 1000
+                  return `${totalSeconds.toFixed(1)}s`
                 })()}
               </div>
 
