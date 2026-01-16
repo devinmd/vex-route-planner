@@ -49,12 +49,14 @@
 #point-list {
   color: var(--text);
   font-size: 16px;
-  width: 33vw;
+  width: 100%;
+  font-size: 14px;
   overflow: auto;
 }
 
 #code-preview {
   overflow: auto;
+  width: 600px;
 }
 
 #point-list div {
@@ -91,7 +93,8 @@ input[type="number"] {
 .number-input .buttons input[type="number"] {
   background-color: transparent;
   border: none;
-  border: 1px solid var(--bg-l2);
+  border-top: 1px solid var(--bg-l2);
+  border-bottom: 1px solid var(--bg-l2);
   color: var(--text);
   text-align: center;
   width: 4rem;
@@ -104,16 +107,15 @@ input[type="number"] {
 
 .number-input .buttons input[type="number"]:first-child {
   border-radius: 0.5rem;
+  border: 1px solid var(--bg-l2);
 }
 
 .number-input .buttons button:first-child {
-  border-right: none;
   border-radius: 0.5rem 0 0 0.5rem;
 }
 
 .number-input .buttons button:last-child {
   border-radius: 0 0.5rem 0.5rem 0;
-  border-left: none;
 }
 .faded {
   color: var(--text-faded);
@@ -153,9 +155,10 @@ input[type="number"] {
   align-items: center;
   display: flex;
   height: auto;
-  padding: 0 2rem;
+  width: 100%;
+  padding: 0 1rem;
+  justify-content: start;
   font-size: 12px;
-  justify-content: center;
   margin-top: auto;
   box-sizing: border-box;
   height: 2rem;

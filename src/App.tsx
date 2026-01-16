@@ -969,11 +969,11 @@ function App() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    Direction
+                    Direction (click to change)
                     <button
                       onClick={() => setPoints(points.map(p => p.id === selectedId ? { ...p, forwards: !p.forwards } : p))}
                     >
-                      {selectedPoint.forwards ? 'Moving Forward' : 'Moving Backward'}
+                      {selectedPoint.forwards ? 'Moving Forwards' : 'Moving Backwards'}
                     </button>
                   </div>
 
@@ -1034,7 +1034,8 @@ function App() {
         </div>
         <div id="footer">
           <div> &copy; 2026 </div>
-          <a target='_blank' href="https://github.com/devinmd/vex-route-planner">https://github.com/devinmd/vex-route-planner</a>
+          <a target='_blank' href="https://github.com/devinmd/vex-route-planner">Source Code</a>
+          <div>by ASIJ's 901A</div>
         </div>
       </div>
     </>
