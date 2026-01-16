@@ -34,3 +34,10 @@ export interface SelectInputProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
 }
+
+export interface CheckboxProps {
+  label: string;
+  checked: boolean;
+  iconSrc?: string;
+  onChange: (checked: boolean) => void; 
+}

@@ -6,6 +6,7 @@ import type { Point } from './types'
 import { NumberInput } from './components/NumberInput'
 import { IconButton } from './components/IconButton'
 import { SelectInput } from './components/SelectInput'
+import { Checkbox } from './components/Checkbox'
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -54,15 +55,15 @@ function App() {
     if (points.length === 0) return []
     const lines: { line: string; pointIndex: number | null }[] = []
     points.forEach((point, index) => {
-      const x = Math.round(point.fieldX * 100) / 100
-      const y = Math.round(point.fieldY * 100) / 100
+      const x = Math.round(point.fieldX * 10) / 10
+      const y = Math.round(point.fieldY * 10) / 10
       if (index === 0) {
-        const theta = Math.round(getEffectiveTheta(0) * 100) / 100
+        const theta = Math.round(getEffectiveTheta(0) * 10) / 10
         lines.push({ line: `chassis.setPose(${x}, ${y}, ${theta});`, pointIndex: index })
       } else {
         lines.push({ line: "\n", pointIndex: -1 })
-        lines.push({ line: `chassis.turnToPoint(${x}, ${y}, ${point.timeout}, {.forwards=${point.forwards}, .maxSpeed=${point.speed}}, false);`, pointIndex: index })
-        lines.push({ line: `chassis.moveToPoint(${x}, ${y});`, pointIndex: index })
+        lines.push({ line: `chassis.turnToPoint(${x}, ${y}, 500, {.forwards=${point.forwards}, .maxSpeed=${point.speed}}, false);`, pointIndex: index })
+        lines.push({ line: `chassis.moveToPoint(${x}, ${y}, ${point.timeout}, {.forwards=${point.forwards}, .maxSpeed=${point.speed}}, false);`, pointIndex: index })
       }
     })
     return lines
@@ -85,7 +86,7 @@ function App() {
   const BOT_BORDER_COLOR = '#000000'
   const BOT_BORDER_WIDTH_IN = 0 // inches
   // arrows
-  const ARROW_COLOR = '#FFFF00'
+  const ARROW_COLOR = '#FFFF00ff'
   // const ARROW_COLOR = '#00ffff80'
   const ARROW_THICKNESS_PX = 3
   const ARROW_HEAD_ANGLE = Math.PI / 6
@@ -242,8 +243,39 @@ function App() {
         const endX = startX + Math.cos(angle) * arrowLen
         const endY = startY + Math.sin(angle) * arrowLen
 
+        // Check if the NEXT point is backwards - if so, reverse only the triangle at this point
+        let arrowAngle = angle
+        if (i < points.length - 1 && !points[i + 1].forwards) {
+          arrowAngle = angle + Math.PI // Reverse triangle by 180 degrees
+        }
+
         const headLenPx = ARROW_HEAD_LENGTH_IN * pixelsPerInch
-        drawArrow(startX, startY, endX, endY, ARROW_COLOR, ARROW_THICKNESS_PX, headLenPx, ARROW_HEAD_ANGLE)
+
+        // Draw the line
+        ctx.strokeStyle = ARROW_COLOR
+        ctx.lineWidth = ARROW_THICKNESS_PX
+        ctx.lineCap = 'round'
+        ctx.beginPath()
+        ctx.moveTo(startX, startY)
+        ctx.lineTo(endX, endY)
+        ctx.stroke()
+
+        // Draw the arrowhead with potentially reversed angle
+        ctx.save()
+        ctx.fillStyle = ARROW_COLOR
+        ctx.beginPath()
+        ctx.moveTo(endX, endY)
+        ctx.lineTo(
+          endX - headLenPx * Math.cos(arrowAngle - ARROW_HEAD_ANGLE),
+          endY - headLenPx * Math.sin(arrowAngle - ARROW_HEAD_ANGLE)
+        )
+        ctx.lineTo(
+          endX - headLenPx * Math.cos(arrowAngle + ARROW_HEAD_ANGLE),
+          endY - headLenPx * Math.sin(arrowAngle + ARROW_HEAD_ANGLE)
+        )
+        ctx.closePath()
+        ctx.fill()
+        ctx.restore()
       }
     }
 
@@ -286,7 +318,63 @@ function App() {
       const frontX = robotData.x + Math.cos(robotData.rotation) * (robotPixelLength / 2)
       const frontY = robotData.y + Math.sin(robotData.rotation) * (robotPixelLength / 2)
       const robotHeadPx = ARROW_HEAD_LENGTH_IN * pixelsPerInch
-      drawArrow(robotData.x, robotData.y, frontX, frontY, ARROW_COLOR, ARROW_THICKNESS_PX, robotHeadPx, ARROW_HEAD_ANGLE)
+
+      // Determine if robot is heading to a backwards point
+      let arrowAngle = robotData.rotation
+      if (points.length >= 2) {
+        // Find which point the robot is heading towards based on progress
+        let totalLength = 0
+        const segmentLengths: number[] = []
+        for (let i = 0; i < points.length - 1; i++) {
+          const dx = points[i + 1].x - points[i].x
+          const dy = points[i + 1].y - points[i].y
+          const length = Math.sqrt(dx * dx + dy * dy)
+          segmentLengths.push(length)
+          totalLength += length
+        }
+
+        if (totalLength > 0) {
+          const targetDistance = totalLength * displayProgress
+          let currentDistance = 0
+
+          for (let i = 0; i < segmentLengths.length; i++) {
+            if (currentDistance + segmentLengths[i] >= targetDistance) {
+              // Robot is on segment i, heading to points[i+1]
+              if (!points[i + 1].forwards) {
+                arrowAngle = robotData.rotation + Math.PI
+              }
+              break
+            }
+            currentDistance += segmentLengths[i]
+          }
+        }
+      }
+
+      // Draw the line
+      ctx.strokeStyle = ARROW_COLOR
+      ctx.lineWidth = ARROW_THICKNESS_PX
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(robotData.x, robotData.y)
+      ctx.lineTo(frontX, frontY)
+      ctx.stroke()
+
+      // Draw the arrowhead at the end of the line
+      ctx.save()
+      ctx.fillStyle = ARROW_COLOR
+      ctx.beginPath()
+      ctx.moveTo(frontX, frontY)
+      ctx.lineTo(
+        frontX - robotHeadPx * Math.cos(arrowAngle - ARROW_HEAD_ANGLE),
+        frontY - robotHeadPx * Math.sin(arrowAngle - ARROW_HEAD_ANGLE)
+      )
+      ctx.lineTo(
+        frontX - robotHeadPx * Math.cos(arrowAngle + ARROW_HEAD_ANGLE),
+        frontY - robotHeadPx * Math.sin(arrowAngle + ARROW_HEAD_ANGLE)
+      )
+      ctx.closePath()
+      ctx.fill()
+      ctx.restore()
     }
   }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, lastHoveredProgress, botLength, botWidth, showBot, showLines, showArrows, isRunning])
 
@@ -555,8 +643,8 @@ function App() {
       const { fieldX, fieldY } = pixelToFieldCoords(x, y)
 
       // Round field coordinates to 2 decimal places and place the point
-      const fieldXR = Math.round(fieldX * 100) / 100
-      const fieldYR = Math.round(fieldY * 100) / 100
+      const fieldXR = Math.round(fieldX * 10) / 10
+      const fieldYR = Math.round(fieldY * 10) / 10
 
       // Convert back to pixel coordinates so the point is drawn exactly at the rounded field coords
       const { x: px, y: py } = fieldToPixelCoords(fieldXR, fieldYR)
@@ -616,8 +704,8 @@ function App() {
 
     const { fieldX, fieldY } = pixelToFieldCoords(x, y)
     // Round to 2 decimal places
-    const fieldXRounded = Math.round(fieldX * 100) / 100
-    const fieldYRounded = Math.round(fieldY * 100) / 100
+    const fieldXRounded = Math.round(fieldX * 10) / 10
+    const fieldYRounded = Math.round(fieldY * 10) / 10
     setPoints(points.map(p =>
       p.id === draggingId ? { ...p, x, y, fieldX: fieldXRounded, fieldY: fieldYRounded, theta: p.theta } : p
     ))
@@ -645,7 +733,7 @@ function App() {
       <Analytics />
       <div id="app">
         <div id="topnav">
-          <h3>VEX V5RC Route Planner</h3>
+          <h3>VEX V5RC Route Builder</h3>
         </div>
         <div id="main">
 
@@ -665,6 +753,7 @@ function App() {
                     <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'space-between' }}>
 
                       <div style={{ display: 'flex', gap: '1rem', flexDirection: 'row' }}>
+                        <span><strong>{point.id}.</strong></span>
                         <span>{Math.round(point.fieldX * 10) / 10}</span>
                         <span>{Math.round(point.fieldY * 10) / 10}</span>
                         <span>{Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
@@ -753,30 +842,31 @@ function App() {
                   step={0.5}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <IconButton
-                  onClick={() => setShowBot(!showBot)}
-                  iconSrc="/robot.svg"
-                  activeIconSrc="/robot-off.svg"
-                  text={showBot ? 'Hide Bot' : 'Show Bot'}
-                  isActive={showBot}
-                  size={20}
+              <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+
+
+
+                <Checkbox
+                  label="Show Bot"
+                  checked={showBot}
+                  iconSrc='/robot.svg'
+
+                  onChange={(checked) => setShowBot(checked)}
                 />
-                <IconButton
-                  onClick={() => setShowLines(!showLines)}
-                  iconSrc="/arrow-narrow-up.svg"
-                  activeIconSrc="/arrow-narrow-up-dashed.svg"
-                  text={showLines ? 'Hide Lines' : 'Show Lines'}
-                  isActive={showLines}
+                <Checkbox
+                  label="Show Lines"
+                  checked={showLines}
+                  iconSrc='/arrow-narrow-up.svg'
+                  onChange={(checked) => setShowLines(checked)}
                 />
-                <IconButton
-                  onClick={() => setShowArrows(!showArrows)}
-                  iconSrc="/arrow-big-right-filled.svg"
-                  activeIconSrc="/arrow-big-right.svg"
-                  text={showArrows ? 'Hide Arrows' : 'Show Arrows'}
-                  isActive={showArrows}
+                <Checkbox
+                  label="Show Arrows"
+                  iconSrc='/arrow-big-right.svg'
+                  checked={showArrows}
+                  onChange={(checked) => setShowArrows(checked)}
                 />
               </div>
+
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <IconButton
                   onClick={() => {
@@ -861,6 +951,16 @@ function App() {
                       step={5}
                     />
                   </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    Direction
+                    <button
+                      onClick={() => setPoints(points.map(p => p.id === selectedId ? { ...p, forwards: !p.forwards } : p))}
+                    >
+                      {selectedPoint.forwards ? 'Moving Forward' : 'Moving Backward'}
+                    </button>
+                  </div>
+
                 </div>
               )}
             </div>
@@ -901,15 +1001,15 @@ function App() {
                   {isRunning ? 'Pause' : 'Run'}
                 </button>
               </div>
-
+{/* 
               <div style={{ marginTop: '0.5rem' }}>
-                <strong>Total Time: </strong>
+              Total Time: 
                 {(() => {
                   const totalMs = getTotalSimulationDuration()
                   const totalSeconds = totalMs / 1000
-                  return `${totalSeconds.toFixed(1)}s`
+                  return ` ${totalSeconds.toFixed(1)}s`
                 })()}
-              </div>
+              </div> */}
 
             </div>
 

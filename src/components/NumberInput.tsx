@@ -28,8 +28,9 @@ export function NumberInput({ label, value, onChange, min = 1, max, step = 1, di
   return (
     <div className='number-input'>
       {label}
-      <div className='buttons'>
-        <button onClick={() => onChange(Math.max(min, value - step))} disabled={disableButtons}>-</button>
+      <div className='buttons'>{
+        !disableButtons &&
+        <button onClick={() => onChange(Math.max(min, value - step))} disabled={disableButtons}>-</button>}
         <input
           type="number"
           value={inputValue}
@@ -40,7 +41,9 @@ export function NumberInput({ label, value, onChange, min = 1, max, step = 1, di
           readOnly={disableButtons}
           style={{ cursor: disableButtons ? 'default' : 'text' }}
         />
-        <button onClick={() => onChange(max !== undefined ? Math.min(max, value + step) : value + step)} disabled={disableButtons}>+</button>
+        {
+          !disableButtons &&
+          <button onClick={() => onChange(max !== undefined ? Math.min(max, value + step) : value + step)} disabled={disableButtons}>+</button>}
       </div>
     </div>
   )

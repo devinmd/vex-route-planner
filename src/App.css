@@ -55,7 +55,6 @@
 
 #code-preview {
   overflow: auto;
-
 }
 
 #point-list div {
@@ -92,8 +91,7 @@ input[type="number"] {
 .number-input .buttons input[type="number"] {
   background-color: transparent;
   border: none;
-  border-top: 1px solid var(--bg-l2);
-  border-bottom: 1px solid var(--bg-l2);
+  border: 1px solid var(--bg-l2);
   color: var(--text);
   text-align: center;
   width: 4rem;
@@ -104,12 +102,18 @@ input[type="number"] {
   height: 2rem;
 }
 
+.number-input .buttons input[type="number"]:first-child {
+  border-radius: 0.5rem;
+}
+
 .number-input .buttons button:first-child {
+  border-right: none;
   border-radius: 0.5rem 0 0 0.5rem;
 }
 
 .number-input .buttons button:last-child {
   border-radius: 0 0.5rem 0.5rem 0;
+  border-left: none;
 }
 .faded {
   color: var(--text-faded);

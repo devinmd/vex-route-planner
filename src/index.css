@@ -1,5 +1,4 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-size: 16px;
@@ -18,13 +17,19 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  font-family: Inter, system-ui, Helvetica, Arial, sans-serif;
+}
+
+pre span {
+  font-family: monospace;
+}
 
 body {
   margin: 0;
   background-color: var(--bg);
   width: 100vw;
   overflow: hidden;
-
 }
 
 h2 {
@@ -70,7 +75,7 @@ select:hover {
 button:disabled {
   color: var(--text-faded);
   border-color: var(--bg-l2);
-  cursor:auto;
+  cursor: auto;
 }
 
 a {
@@ -82,7 +87,7 @@ a:hover {
   text-decoration: underline;
 }
 
-input[type="range"]{
+input[type="range"] {
   margin: 0;
 }
 
