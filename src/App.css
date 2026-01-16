@@ -1,9 +1,9 @@
 #topnav {
-  width: 100vw;
+  width: 100%;
   height: 3rem;
   display: flex;
   align-items: center;
-  padding: 0 2rem;
+  padding: 0 1rem;
   box-sizing: border-box;
   border-bottom: 1px solid var(--bg-l1);
   box-sizing: border-box;
@@ -11,10 +11,12 @@
 }
 
 #main {
-  max-height: 100%;
+  height: calc(100vh - 3rem - 2rem);
   display: flex;
   justify-self: center;
+  width: 100vw;
   flex-direction: row;
+  overflow: hidden;
 }
 
 .container {
@@ -25,24 +27,34 @@
   padding: 1rem;
   box-sizing: border-box;
   border: 1px solid var(--bg-l1);
+  overflow: hidden;
 }
 
 #field {
+  width: 100%;
+  flex-grow: 1;
+  display: flex;
   justify-content: center;
   align-items: center;
-  aspect-ratio: 1 / 1;
-  max-height: calc(100vh - 2rem - 2rem - 3rem);
+  min-height: 0;
+  overflow: hidden;
 }
 
-canvas {
-  width: 100%;
-  height: 100%;
+#field canvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 #point-list {
   color: var(--text);
   font-size: 16px;
-  min-width: 160px;
+  width: 33vw;
+  overflow: auto;
+}
+
+#code-preview {
+  overflow: auto;
 
 }
 
@@ -50,11 +62,6 @@ canvas {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-
-}
-
-#code-preview {
-  min-width: 240px;
 }
 
 /* Hide default number input spinners */
@@ -134,6 +141,7 @@ input[type="number"] {
   flex-direction: column;
   min-height: 100vh;
   align-items: center;
+  overflow: hidden;
 }
 
 #footer {
@@ -146,6 +154,6 @@ input[type="number"] {
   justify-content: center;
   margin-top: auto;
   box-sizing: border-box;
-  height: 3rem;
+  height: 2rem;
   gap: 1rem;
 }

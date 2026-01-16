@@ -23,6 +23,8 @@ body {
   margin: 0;
   background-color: var(--bg);
   width: 100vw;
+  overflow: hidden;
+
 }
 
 h2 {
@@ -56,6 +58,7 @@ select {
   color: var(--text);
   outline: none;
   cursor: pointer;
+  line-height: 1;
   transition: 50ms;
 }
 

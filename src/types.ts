@@ -7,6 +7,7 @@ export interface Point {
   theta: number; // heading in degrees: 0=up, 90=right, 180=down, 270=left
   timeout: number; // in milliseconds, default 1000
   speed: number; // 1-127, default 70
+  forwards: boolean; // true=forwards, false=backwards
 }
 
 export interface NumberInputProps {

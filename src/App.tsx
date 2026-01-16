@@ -61,7 +61,7 @@ function App() {
         lines.push({ line: `chassis.setPose(${x}, ${y}, ${theta});`, pointIndex: index })
       } else {
         lines.push({ line: "\n", pointIndex: -1 })
-        lines.push({ line: `chassis.turnToPoint(${x}, ${y});`, pointIndex: index })
+        lines.push({ line: `chassis.turnToPoint(${x}, ${y}, ${point.timeout}, {.forwards=${point.forwards}, .maxSpeed=${point.speed}}, false);`, pointIndex: index })
         lines.push({ line: `chassis.moveToPoint(${x}, ${y});`, pointIndex: index })
       }
     })
@@ -72,24 +72,21 @@ function App() {
   const lastTimeRef = useRef<number | null>(null)
 
   // points
-  const POINT_RADIUS = 40
-  const POINT_COLOR = '#ff00fb'
-  const POINT_BORDER_COLOR = '#ffffff'
+  const POINT_RADIUS = 30
+  const POINT_COLOR = '#00ff00a0'
+  const POINT_BORDER_COLOR = '#ffffff80'
   const POINT_BORDER_WIDTH = 0
-  const POINT_OPACITY = 0.6
   const TEXT_COLOR = '#ffffff'
   // path line
-  const LINE_COLOR = '#00ff00'
-  const LINE_OPACITY = 0.5
+  const LINE_COLOR = '#ff00ff80'
   const LINE_WIDTH = 5
   // robot
-  const ROBOT_COLOR = '#dfdfdf'
-  const ROBOT_OPACITY = 0.5
+  const ROBOT_COLOR = '#ffffff30'
   const BOT_BORDER_COLOR = '#000000'
   const BOT_BORDER_WIDTH_IN = 0 // inches
   // arrows
   const ARROW_COLOR = '#FFFF00'
-  const ARROW_OPACITY = 1
+  // const ARROW_COLOR = '#00ffff80'
   const ARROW_THICKNESS_PX = 3
   const ARROW_HEAD_ANGLE = Math.PI / 6
   const ARROW_HEAD_LENGTH_IN = 2
@@ -128,11 +125,9 @@ function App() {
       lineWidth = ARROW_THICKNESS_PX,
       headLenPx?: number,
       sideAngle = ARROW_HEAD_ANGLE,
-      opacity = ARROW_OPACITY
     ) => {
       const angle = Math.atan2(toY - fromY, toX - fromX)
       ctx.save()
-      ctx.globalAlpha = opacity
       ctx.strokeStyle = color
       ctx.fillStyle = color
       ctx.lineWidth = lineWidth
@@ -168,7 +163,6 @@ function App() {
 
     // Draw lines connecting points
     if (showLines && points.length > 1) {
-      ctx.globalAlpha = LINE_OPACITY
       ctx.strokeStyle = LINE_COLOR
       ctx.lineWidth = LINE_WIDTH
       ctx.beginPath()
@@ -189,7 +183,6 @@ function App() {
 
       const center = fieldToPixelCoords(point.fieldX, point.fieldY)
 
-      ctx.globalAlpha = POINT_OPACITY
       ctx.fillStyle = POINT_COLOR
       ctx.beginPath()
       ctx.arc(center.x, center.y, POINT_RADIUS, 0, Math.PI * 2)
@@ -214,7 +207,6 @@ function App() {
       }
 
       // Draw index text
-      ctx.globalAlpha = 1
       ctx.fillStyle = TEXT_COLOR
       ctx.font = 'bold 40px Arial'
       ctx.textAlign = 'center'
@@ -251,7 +243,7 @@ function App() {
         const endY = startY + Math.sin(angle) * arrowLen
 
         const headLenPx = ARROW_HEAD_LENGTH_IN * pixelsPerInch
-        drawArrow(startX, startY, endX, endY, ARROW_COLOR, ARROW_THICKNESS_PX, headLenPx, ARROW_HEAD_ANGLE, ARROW_OPACITY)
+        drawArrow(startX, startY, endX, endY, ARROW_COLOR, ARROW_THICKNESS_PX, headLenPx, ARROW_HEAD_ANGLE)
       }
     }
 
@@ -264,7 +256,6 @@ function App() {
       const robotPixelLength = botLength * pixelsPerInch
 
       ctx.save()
-      ctx.globalAlpha = ROBOT_OPACITY
       ctx.fillStyle = ROBOT_COLOR
       ctx.translate(robotData.x, robotData.y)
       ctx.rotate(robotData.rotation)
@@ -290,13 +281,12 @@ function App() {
       }
 
       ctx.restore()
-      ctx.globalAlpha = 1
 
       // Draw robot front arrow (from center to front face)
       const frontX = robotData.x + Math.cos(robotData.rotation) * (robotPixelLength / 2)
       const frontY = robotData.y + Math.sin(robotData.rotation) * (robotPixelLength / 2)
       const robotHeadPx = ARROW_HEAD_LENGTH_IN * pixelsPerInch
-      drawArrow(robotData.x, robotData.y, frontX, frontY, ARROW_COLOR, ARROW_THICKNESS_PX, robotHeadPx, ARROW_HEAD_ANGLE, ARROW_OPACITY)
+      drawArrow(robotData.x, robotData.y, frontX, frontY, ARROW_COLOR, ARROW_THICKNESS_PX, robotHeadPx, ARROW_HEAD_ANGLE)
     }
   }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, lastHoveredProgress, botLength, botWidth, showBot, showLines, showArrows, isRunning])
 
@@ -400,14 +390,19 @@ function App() {
     }
   }
 
-  // Convert pixel coordinates to field coordinates (72x72 inch field, centered at 0,0)
+  // Convert pixel coordinates to field coordinates (144x144 inch field, centered at 0,0)
   const pixelToFieldCoords = (pixelX: number, pixelY: number) => {
     if (!image) return { fieldX: 0, fieldY: 0 }
 
-    // Image is 2000x2000 pixels representing a 144x144 inch field
-    const centerX = image.width / 2
-    const centerY = image.height / 2
-    const pixelsPerInch = image.width / 144
+    // Image is 2000x2000 pixels, but field area is 1932x1932 pixels (wall padding of 34px on each side)
+    // The 1932x1932 field represents a 144x144 inch field
+    const fieldPixelSize = 1932
+    const fieldInchSize = 144
+    const wallPadding = (image.width - fieldPixelSize) / 2
+
+    const centerX = wallPadding + fieldPixelSize / 2
+    const centerY = wallPadding + fieldPixelSize / 2
+    const pixelsPerInch = fieldPixelSize / fieldInchSize
 
     const fieldX = (pixelX - centerX) / pixelsPerInch
     const fieldY = (centerY - pixelY) / pixelsPerInch // Invert Y because canvas Y increases downward
@@ -419,9 +414,15 @@ function App() {
   const fieldToPixelCoords = (fieldX: number, fieldY: number) => {
     if (!image) return { x: 0, y: 0 }
 
-    const centerX = image.width / 2
-    const centerY = image.height / 2
-    const pixelsPerInch = image.width / 144
+    // Image is 2000x2000 pixels, but field area is 1932x1932 pixels (wall padding of 34px on each side)
+    // The 1932x1932 field represents a 144x144 inch field
+    const fieldPixelSize = 1932
+    const fieldInchSize = 144
+    const wallPadding = (image.width - fieldPixelSize) / 2
+
+    const centerX = wallPadding + fieldPixelSize / 2
+    const centerY = wallPadding + fieldPixelSize / 2
+    const pixelsPerInch = fieldPixelSize / fieldInchSize
 
     const x = fieldX * pixelsPerInch + centerX
     const y = centerY - fieldY * pixelsPerInch
@@ -568,7 +569,8 @@ function App() {
         id: nextId,
         theta: 0,
         timeout: 1000,
-        speed: 70
+        speed: 70,
+        forwards: true
       }
       setPoints([...points, newPoint])
       setNextId(nextId + 1)
@@ -646,76 +648,77 @@ function App() {
           <h3>VEX V5RC Route Planner</h3>
         </div>
         <div id="main">
-          <div className="container" id="code-preview">
-            <h3>Code</h3>
-            <pre style={{ backgroundColor: 'transparent', lineHeight: '1.5' }}>
-              {generatedCodeLines.map((item, i) => {
-                const selectedPointIndex = selectedId !== null ? points.findIndex(p => p.id === selectedId) : -1
-                const isHighlighted = item.pointIndex === selectedPointIndex && selectedPointIndex !== -1
-                return (
-                  <span
-                    key={i}
-                    onClick={() => {
-                      if (item.pointIndex !== null) {
-                        setSelectedId(points[item.pointIndex].id)
-                      }
-                    }}
-                    style={{
-                      backgroundColor: isHighlighted ? '#20508080' : 'transparent',
-                      display: 'block',
-                      borderRadius: '0.25rem',
-                      cursor: item.pointIndex !== null ? 'pointer' : 'default',
-                      padding: '0.1rem 0.25rem'
-                    }}
+
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+
+            <div className="container" id="point-list">
+              <h3>Points</h3>
+              <div>
+                {points.map((point, index) => (
+                  <div
+                    key={point.id}
+                    className={`point-item ${selectedId === point.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedId(point.id)}
+                    style={{ cursor: 'pointer' }}
                   >
-                    {item.line}
-                  </span>
-                )
-              })}
-            </pre>
-          </div>
-          <div className="container" id="point-list">
-            <h3>Points</h3>
-            <div>
-              {points.map((point, index) => (
-                <div
-                  key={point.id}
-                  className={`point-item ${selectedId === point.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedId(point.id)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'space-between' }}>
-                    <span><strong>{index}</strong></span>
-                    <div style={{ display: 'flex', gap: '0rem' }}>
-                      <span>{Math.round(point.fieldX * 10) / 10}, {Math.round(point.fieldY * 10) / 10}</span>
-                      <span>θ: {Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
-                      <span>{point.timeout}ms</span>
-                      <span>Speed: {point.speed}</span>
+                    <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'space-between' }}>
+
+                      <div style={{ display: 'flex', gap: '1rem', flexDirection: 'row' }}>
+                        <span>{Math.round(point.fieldX * 10) / 10}</span>
+                        <span>{Math.round(point.fieldY * 10) / 10}</span>
+                        <span>{Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
+                        <span>Timeout: {point.timeout}ms</span>
+                        <span>Forwards: {point.forwards.toString()}</span>
+                        <span>Speed: {point.speed}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-            {/*             
-            <div style={{ marginTop: "none" }} >
-              <button disabled={selectedPoint ? false : true} onClick={handleCopySelectedPoint}>Copy Code for Selected Point</button>
-            </div> */}
-
+            <div className="container" id="code-preview">
+              <h3>Code</h3>
+              <pre style={{ backgroundColor: 'transparent', lineHeight: '1.5' }}>
+                {generatedCodeLines.map((item, i) => {
+                  const selectedPointIndex = selectedId !== null ? points.findIndex(p => p.id === selectedId) : -1
+                  const isHighlighted = item.pointIndex === selectedPointIndex && selectedPointIndex !== -1
+                  return (
+                    <span
+                      key={i}
+                      onClick={() => {
+                        if (item.pointIndex !== null) {
+                          setSelectedId(points[item.pointIndex].id)
+                        }
+                      }}
+                      style={{
+                        backgroundColor: isHighlighted ? '#20508080' : 'transparent',
+                        display: 'block',
+                        borderRadius: '0.25rem',
+                        cursor: item.pointIndex !== null ? 'pointer' : 'default',
+                        padding: '0.1rem 0.25rem'
+                      }}
+                    >
+                      {item.line}
+                    </span>
+                  )
+                })}
+              </pre>
+            </div>
           </div>
-          <div>
-            <div className="container" id="field">
-              <canvas
-                ref={canvasRef}
-                tabIndex={0}
-                onClick={handleCanvasClick}
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseLeave}
-                style={{ cursor: draggingId !== null ? 'grabbing' : hoveredId !== null ? 'grab' : 'crosshair' }}
-                aria-label="VEX field canvas"
-              />
-            </div>
+
+          <div className="container" id="field">
+            <canvas
+              ref={canvasRef}
+              tabIndex={0}
+              onClick={handleCanvasClick}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              style={{ cursor: draggingId !== null ? 'grabbing' : hoveredId !== null ? 'grab' : 'crosshair' }}
+              aria-label="VEX field canvas"
+            />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -818,6 +821,12 @@ function App() {
                       min={-72}
                       step={1}
                     />
+
+
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+
                     <NumberInput
                       label="θ (°)"
                       value={Math.round(getEffectiveTheta(points.findIndex(p => p.id === selectedId)))}
@@ -834,7 +843,6 @@ function App() {
                       step={5}
                       disableButtons={selectedId !== null && selectedId !== points[points.length - 1].id}
                     />
-
                   </div>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <NumberInput
