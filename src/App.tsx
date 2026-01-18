@@ -823,7 +823,7 @@ function App() {
                         }
                       }}
                       style={{
-                        backgroundColor: isHighlighted ? '#20508080' : 'transparent',
+                        backgroundColor: isHighlighted ? '#20408080' : 'transparent',
                         display: 'block',
                         borderRadius: '0.25rem',
                         cursor: item.pointIndex !== null ? 'pointer' : 'default',

@@ -62,7 +62,10 @@
 #point-list div {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  height: 2rem;
+  width: 100%;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* Hide default number input spinners */
@@ -139,7 +142,7 @@ input[type="number"] {
   /* background-color: var(--bg-l2); */
   /* border-left: 3px solid var(--text); */
   /* padding-left: calc(0.5rem - 3px); */
-  background-color: #20508080;
+  background-color: #20408080;
   /* border: 1px solid var(--text); */
 }
 
