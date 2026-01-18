@@ -5,7 +5,7 @@
   align-items: center;
   padding: 0 1rem;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--bg-l1);
+  border-bottom: 1px solid var(--bg-l2);
   box-sizing: border-box;
   color: var(--text);
 }
@@ -26,13 +26,13 @@
   gap: 0.5rem;
   padding: 1rem;
   box-sizing: border-box;
-  border: 1px solid var(--bg-l1);
   overflow: hidden;
 }
 
 #field {
   width: 100%;
   flex-grow: 1;
+  border-right: 1px solid var(--bg-l2);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -51,21 +51,45 @@
   font-size: 16px;
   width: 100%;
   font-size: 14px;
+  border-right: 1px solid var(--bg-l2);
+  border-bottom: 1px solid var(--bg-l2);
   overflow: auto;
 }
 
 #code-preview {
   overflow: auto;
+  border-right: 1px solid var(--bg-l2);
   width: 600px;
 }
 
 #point-list div {
   display: flex;
   flex-direction: column;
-  height: 2rem;
   width: 100%;
   align-items: center;
   gap: 0.25rem;
+}
+
+#point-list div div.point-item {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  justify-content: space-between;
+  height: 2rem;
+  padding: 0 1rem;
+}
+
+#point-list div div.point-item span:first-child {
+  min-width: 1rem;
+}
+
+#point-list div div.point-item span {
+  min-width: 3rem;
+}
+
+#configuration,
+#edit {
+  border-bottom: 1px solid var(--bg-l2);
 }
 
 /* Hide default number input spinners */
@@ -161,6 +185,7 @@ input[type="number"] {
   height: auto;
   width: 100%;
   padding: 0 1rem;
+  border-top: 1px solid var(--bg-l2);
   justify-content: start;
   font-size: 12px;
   margin-top: auto;

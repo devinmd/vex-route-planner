@@ -792,18 +792,13 @@ function App() {
                     onClick={() => setSelectedId(point.id)}
                     style={{ cursor: 'pointer' }}
                   >
-                    <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'space-between' }}>
-
-                      <div style={{ display: 'flex', gap: '1rem', flexDirection: 'row' }}>
-                        <span><strong>{point.id}.</strong></span>
-                        <span>{Math.round(point.fieldX * 10) / 10}</span>
-                        <span>{Math.round(point.fieldY * 10) / 10}</span>
-                        <span>{Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
-                        <span>Timeout: {point.timeout}ms</span>
-                        <span>Forwards: {point.forwards.toString()}</span>
-                        <span>Speed: {point.speed}</span>
-                      </div>
-                    </div>
+                    <span><strong>{point.id}.</strong></span>
+                    <span>{Math.round(point.fieldX * 10) / 10}</span>
+                    <span>{Math.round(point.fieldY * 10) / 10}</span>
+                    <span>{Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
+                    <span>{point.timeout}ms</span>
+                    <span>{point.forwards ? "Forwards" : "Backwards"}</span>
+                    <span>Speed: {point.speed}</span>
                   </div>
                 ))}
               </div>
@@ -827,7 +822,7 @@ function App() {
                         display: 'block',
                         borderRadius: '0.25rem',
                         cursor: item.pointIndex !== null ? 'pointer' : 'default',
-                        padding: '0.1rem 0.25rem'
+                        padding: '0 0.25rem'
                       }}
                     >
                       {item.line}

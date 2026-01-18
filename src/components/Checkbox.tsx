@@ -6,6 +6,7 @@ export function Checkbox({ label, checked, iconSrc, onChange }: CheckboxProps) {
       display: 'flex',
       alignItems: 'center',
       lineHeight: 0,
+      gap: "4px",
       cursor: 'pointer',
     }}>
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ width: 16, height: 16 }} />
