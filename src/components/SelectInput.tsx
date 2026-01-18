@@ -3,7 +3,7 @@ import type { SelectInputProps } from '../types'
 export function SelectInput({ label, value, onChange, options }: SelectInputProps) {
   return (
     <div className='select-input'>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         <label>{label}</label>
         <select value={value} onChange={(e) => onChange(e.target.value)}>
           {options.map(option => (

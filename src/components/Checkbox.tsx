@@ -5,7 +5,6 @@ export function Checkbox({ label, checked, iconSrc, onChange }: CheckboxProps) {
     <label style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '0.25rem',
       lineHeight: 0,
       cursor: 'pointer',
     }}>

@@ -26,6 +26,7 @@ function App() {
   const [showBot, setShowBot] = useState<boolean>(true)
   const [showArrows, setShowArrows] = useState<boolean>(true)
   const [showLines, setShowLines] = useState<boolean>(true)
+  const [showGuideCoordinates, setShowGuideCoordinates] = useState<boolean>(true)
 
   // Helper to get the effective theta for a point
   // For non-last points: angle to next point
@@ -133,6 +134,31 @@ function App() {
         ctx.lineTo(pt.x, pt.y)
       }
       ctx.stroke()
+    }
+
+    if (showGuideCoordinates) {
+      const offset = 3;
+
+      ctx.fillStyle = "#FFFF00"
+      ctx.font = 'bold 40px Arial'
+      ctx.textBaseline = 'middle'
+
+      ctx.textAlign = 'center'
+      ctx.fillText("(0, 0)", fieldToPixelCoords(0, 0).x, fieldToPixelCoords(0, 0).y)
+      ctx.fillText("180°", fieldToPixelCoords(0, 0).x, fieldToPixelCoords(0, -72 + offset).y)
+      ctx.fillText("0°", fieldToPixelCoords(0, 0).x, fieldToPixelCoords(0, 72 - offset).y)
+
+
+      ctx.textAlign = 'left'
+      ctx.fillText("(-72, 72)", fieldToPixelCoords(-72 + offset, 72).x, fieldToPixelCoords(-72, 72 - offset).y)
+      ctx.fillText("(-72, -72)", fieldToPixelCoords(-72 + offset, -72).x, fieldToPixelCoords(-72, -72 + offset).y)
+      ctx.fillText("270°", fieldToPixelCoords(-72 + offset, 0).x, fieldToPixelCoords(0, 0).y)
+
+      ctx.textAlign = 'right'
+      ctx.fillText("(72, 72)", fieldToPixelCoords(72 - offset, 72).x, fieldToPixelCoords(72, 72 - offset).y)
+      ctx.fillText("(72, -72)", fieldToPixelCoords(72 - offset, -72).x, fieldToPixelCoords(72, -72 + offset).y)
+      ctx.fillText("90°", fieldToPixelCoords(72 - offset, 0).x, fieldToPixelCoords(0, 0).y)
+
     }
 
     // Draw points (center at field coords)
@@ -334,7 +360,7 @@ function App() {
       ctx.fill()
       ctx.restore()
     }
-  }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, lastHoveredProgress, botLength, botWidth, showBot, showLines, showArrows, isRunning])
+  }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, lastHoveredProgress, botLength, botWidth, showBot, showLines, showArrows, isRunning, showGuideCoordinates])
 
   // Calculate total simulation duration from point timeouts
   const getTotalSimulationDuration = () => {
@@ -872,7 +898,7 @@ function App() {
                 <Checkbox
                   label="Show Lines"
                   checked={showLines}
-                  iconSrc='/arrow-narrow-up.svg'
+                  iconSrc='/line.svg'
                   onChange={(checked) => setShowLines(checked)}
                 />
                 <Checkbox
@@ -880,6 +906,12 @@ function App() {
                   iconSrc='/arrow-big-right.svg'
                   checked={showArrows}
                   onChange={(checked) => setShowArrows(checked)}
+                />
+                <Checkbox
+                  label="Show Guide Coordinates"
+                  iconSrc='/world.svg'
+                  checked={showGuideCoordinates}
+                  onChange={(checked) => setShowGuideCoordinates(checked)}
                 />
               </div>
 
@@ -909,9 +941,49 @@ function App() {
               </div>
             </div>
             <div className="container" id="edit">
-              <h3>Edit Point {selectedId !== null ? points.findIndex(p => p.id === selectedId) : ''}</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>Edit Point {selectedId !== null ? points.findIndex(p => p.id === selectedId) : ''}</h3>
+                {
+                  selectedId !== null && (
+                    <div
+                      style={{
+                        marginLeft: "auto",
+                        display: "flex",
+                        gap: "0.5rem"
+                      }}
+                    >
+                      <IconButton
+
+                        onClick={() => {
+                          const index = points.findIndex(p => p.id === selectedId);
+                          setSelectedId(index > 0 ? index - 1 : points.length - 1);
+                        }}
+                        iconSrc="/arrow-left.svg"
+                        text=""
+                      />
+
+                      <IconButton
+                        onClick={() => {
+                          const index = points.findIndex(p => p.id === selectedId);
+                          setSelectedId(index < points.length - 1 ? index + 1 : 0);
+                        }}
+                        iconSrc="/arrow-right.svg"
+                        text=""
+                      />
+                    </div>
+                  )
+                }
+
+
+
+
+
+
+
+
+              </div>
               {selectedPoint && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <NumberInput
                       label="X (in)"
@@ -968,16 +1040,31 @@ function App() {
                     />
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    Direction (click to change)
-                    <button
-                      onClick={() => setPoints(points.map(p => p.id === selectedId ? { ...p, forwards: !p.forwards } : p))}
-                    >
-                      {selectedPoint.forwards ? 'Moving Forwards' : 'Moving Backwards'}
-                    </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0rem' }}>
+                    Direction
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+
+                      <button
+                        className={selectedPoint.forwards ? '' : 'selected'}
+                        disabled={!selectedPoint.forwards}
+                        onClick={() => setPoints(points.map(p => p.id === selectedId ? { ...p, forwards: false } : p))}
+                      >
+                        Backwards
+                      </button>
+
+                      <button
+                        className={selectedPoint.forwards ? 'selected' : ''}
+                        disabled={selectedPoint.forwards}
+                        onClick={() => setPoints(points.map(p => p.id === selectedId ? { ...p, forwards: true } : p))}
+                      >
+                        Forwards
+                      </button>
+
+                    </div>
+
                   </div>
 
-                </div>
+                </>
               )}
             </div>
             <div id="path-control" className='container'>

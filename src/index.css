@@ -56,14 +56,14 @@ select {
   border-radius: 0.5rem;
   min-width: 2rem;
   font-weight: 500;
-  padding: 0.25rem 0.5rem;
+  padding: 0 1rem;
   font-size: 16px;
   box-sizing: border-box;
   min-height: 2rem;
   color: var(--text);
   outline: none;
   cursor: pointer;
-  line-height: 1;
+  line-height: 0;
   transition: 50ms;
 }
 
@@ -76,6 +76,10 @@ button:disabled {
   color: var(--text-faded);
   border-color: var(--bg-l2);
   cursor: auto;
+}
+
+button.selected {
+  background-color: var(--bg-l1);
 }
 
 a {
