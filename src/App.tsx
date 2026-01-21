@@ -1116,7 +1116,7 @@ function App() {
         </div>
         <div id="footer">
           <div> &copy; 2026 </div>
-          <a target='_blank' href="https://github.com/devinmd/vex-route-planner">Source Code</a>
+          {/* <a target='_blank' href="https://github.com/devinmd/vex-route-planner">Source Code</a> */}
           <div>by ASIJ's 901A</div>
         </div>
       </div>
