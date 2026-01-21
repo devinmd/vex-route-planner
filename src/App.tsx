@@ -717,7 +717,10 @@ function App() {
       <Analytics />
       <div id="app">
         <div id="topnav">
-          <h3>VEX V5RC Route Builder</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <img src="/logo.svg" alt="Logo" style={{ height: '1.5rem' }} />
+            <h3>VEX V5RC Route Builder</h3>
+          </div>
           <button
             onClick={() => {
               const dataStr = JSON.stringify(points, null, 2)
@@ -1116,8 +1119,11 @@ function App() {
         </div>
         <div id="footer">
           <div> &copy; 2026 </div>
-          {/* <a target='_blank' href="https://github.com/devinmd/vex-route-planner">Source Code</a> */}
-          <div>by ASIJ's 901A</div>
+          <a target='_blank' href="https://github.com/devinmd/vex-route-planner">Source Code</a>
+          <div>Made by ASIJ's 901A</div>
+          <div id="contact-btn" onClick={() => { alert('Contact me at the following for any questions, comments, concerns, feedback, bugs, feature requests, etc:\n\ndevin@drako.net\n27drakod@asij.ac.jp') }}>Contact</div>
+          <div id="contact-btn" onClick={() => { alert('VEX Route Builder v1.0\nInspired by path.jerryio.com') }}>About</div>
+
         </div>
       </div>
     </>
