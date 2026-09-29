@@ -13,20 +13,24 @@ function App() {
   const [points, setPoints] = useState<Point[]>([])
   const [nextId, setNextId] = useState(0)
   const [image, setImage] = useState<HTMLImageElement | null>(null)
-  const [fieldImageSrc, setFieldImageSrc] = useState<string>('h2h')
+  const [fieldImageSrc, setFieldImageSrc] = useState<string>('override_skills')
   const [draggingId, setDraggingId] = useState<number | null>(null)
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [robotProgress, setRobotProgress] = useState<number>(0)
+  const [stopwatchMs, setStopwatchMs] = useState<number>(0)
   const [hoveredPathProgress, setHoveredPathProgress] = useState<number | null>(null)
   const [lastHoveredProgress, setLastHoveredProgress] = useState<number>(0)
-  const [botWidth, setBotWidth] = useState<number>(15)
+  const [botWidth, setBotWidth] = useState<number>(14)
   const [botLength, setBotLength] = useState<number>(15)
+  const [maxSpeed, setMaxSpeed] = useState<number>(28.8)
   const [isRunning, setIsRunning] = useState<boolean>(false)
   const [showBot, setShowBot] = useState<boolean>(true)
   const [showArrows, setShowArrows] = useState<boolean>(true)
   const [showLines, setShowLines] = useState<boolean>(true)
   const [showGuideCoordinates, setShowGuideCoordinates] = useState<boolean>(true)
+  const [snapToWholeInch, setSnapToWholeInch] = useState<boolean>(true)
+  const hasInitializedDefaultPoint = useRef(false)
 
   // Helper to get the effective theta for a point
   // For non-last points: angle to next point
@@ -105,6 +109,29 @@ function App() {
       if (canvas) {
         canvas.width = img.width
         canvas.height = img.height
+      }
+
+      if (!hasInitializedDefaultPoint.current) {
+        const fieldPixelSize = 1932
+        const fieldInchSize = 144
+        const wallPadding = (img.width - fieldPixelSize) / 2
+        const center = wallPadding + fieldPixelSize / 2
+        const pixelsPerInch = fieldPixelSize / fieldInchSize
+
+        setPoints([{
+          x: center + (-62 * pixelsPerInch),
+          y: center - (14 * pixelsPerInch),
+          fieldX: -62,
+          fieldY: 14,
+          id: 0,
+          theta: 55,
+          timeout: 0,
+          speed: 127,
+          forwards: true
+        }])
+        setNextId(1)
+        setSelectedId(0)
+        hasInitializedDefaultPoint.current = true
       }
     }
   }, [fieldImageSrc])
@@ -264,7 +291,7 @@ function App() {
     }
 
     // Draw robot
-    const displayProgress = hoveredPathProgress !== null ? hoveredPathProgress : !isRunning && lastHoveredProgress !== 0 ? lastHoveredProgress : robotProgress
+    const displayProgress = hoveredPathProgress !== null ? hoveredPathProgress : robotProgress
     const robotData = getRobotPositionAndRotation(displayProgress)
     if (showBot && robotData && image) {
       const pixelsPerInch = image.width / 144
@@ -362,22 +389,64 @@ function App() {
     }
   }, [image, points, hoveredId, selectedId, robotProgress, hoveredPathProgress, lastHoveredProgress, botLength, botWidth, showBot, showLines, showArrows, isRunning, showGuideCoordinates])
 
-  // Calculate total simulation duration from point timeouts
+  // Calculate the duration of a segment from field distance and its speed percentage.
+  const getSegmentDurationMs = (index: number) => {
+    const start = points[index]
+    const end = points[index + 1]
+    const distanceInches = Math.hypot(end.fieldX - start.fieldX, end.fieldY - start.fieldY)
+    const speedInchesPerSecond = (end.speed / 127) * maxSpeed
+    return speedInchesPerSecond > 0 ? (distanceInches / speedInchesPerSecond) * 1000 : 0
+  }
+
+  // Calculate total simulation duration from travel time plus each segment's timeout.
   const getTotalSimulationDuration = () => {
     if (points.length < 2) return 0
-    // Sum all timeout values (they're in milliseconds)
     let totalMs = 0
     for (let i = 0; i < points.length - 1; i++) {
-      totalMs += points[i + 1].timeout
+      totalMs += getSegmentDurationMs(i) + points[i + 1].timeout
     }
     return totalMs
   }
 
-  // Get the progress along path based on time elapsed
+  const getTotalRouteTime = () => {
+    return getTotalSimulationDuration()
+  }
+
+  // Get distance-based path progress for the elapsed real-world simulation time.
   const getProgressFromElapsedTime = (elapsedMs: number) => {
     if (points.length < 2) return 0
     const totalMs = getTotalSimulationDuration()
-    return totalMs > 0 ? Math.min(1, elapsedMs / totalMs) : 0
+    if (totalMs <= 0) return 0
+
+    const totalPixelDistance = points.reduce((total, point, index) => {
+      if (index === 0) return total
+      return total + Math.hypot(point.x - points[index - 1].x, point.y - points[index - 1].y)
+    }, 0)
+
+    let elapsedBeforeSegment = 0
+    let pixelDistanceBeforeSegment = 0
+    for (let i = 0; i < points.length - 1; i++) {
+      const travelDuration = getSegmentDurationMs(i)
+      const segmentDuration = travelDuration + points[i + 1].timeout
+      const segmentPixelDistance = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y)
+
+      if (elapsedMs <= elapsedBeforeSegment + travelDuration) {
+        const segmentProgress = travelDuration > 0
+          ? (elapsedMs - elapsedBeforeSegment) / travelDuration
+          : 1
+        return Math.min(1, (pixelDistanceBeforeSegment + segmentPixelDistance * segmentProgress) / totalPixelDistance)
+      }
+
+      // Hold the robot at the destination while its timeout elapses.
+      if (elapsedMs <= elapsedBeforeSegment + segmentDuration) {
+        return Math.min(1, (pixelDistanceBeforeSegment + segmentPixelDistance) / totalPixelDistance)
+      }
+
+      elapsedBeforeSegment += segmentDuration
+      pixelDistanceBeforeSegment += segmentPixelDistance
+    }
+
+    return 1
   }
 
   // Simulation loop: animate robotProgress from 0 -> 1 based on point timeouts
@@ -397,18 +466,18 @@ function App() {
       return
     }
 
-    const startTime = performance.now()
+    const startTime = performance.now() - stopwatchMs
 
     const step = (time: number) => {
-      const elapsedMs = time - startTime
+      const elapsedMs = Math.min(time - startTime, totalMs)
+      setStopwatchMs(elapsedMs)
       const progress = getProgressFromElapsedTime(elapsedMs)
 
       setRobotProgress(progress)
 
-      if (progress >= 1) {
-        // stop when reached end and hide bot
+      if (elapsedMs >= totalMs) {
+        // stop when the full route timeline has elapsed
         setIsRunning(false)
-        setShowBot(false)
       } else {
         rafRef.current = requestAnimationFrame(step)
       }
@@ -420,7 +489,15 @@ function App() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       rafRef.current = null
     }
-  }, [isRunning, points])
+  }, [isRunning, points, maxSpeed])
+
+  const formatStopwatch = (timeMs: number) => {
+    const totalCentiseconds = Math.floor(timeMs / 10)
+    const minutes = Math.floor(totalCentiseconds / 6000)
+    const seconds = Math.floor((totalCentiseconds % 6000) / 100)
+    const centiseconds = totalCentiseconds % 100
+    return `${minutes}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`
+  }
 
   // Handle Delete key to remove selected point
   useEffect(() => {
@@ -429,7 +506,10 @@ function App() {
       const active = document.activeElement
       const canvasEl = canvasRef.current as HTMLCanvasElement | null
       if ((e.key === 'Backspace' || e.key === 'Delete') && selectedId !== null && active === canvasEl) {
-        setPoints(points.filter(p => p.id !== selectedId))
+        const remainingPoints = points
+          .filter(p => p.id !== selectedId)
+          .map((point, index) => index === 0 ? { ...point, timeout: 0 } : point)
+        setPoints(remainingPoints)
         setSelectedId(null)
       }
     }
@@ -514,7 +594,15 @@ function App() {
 
   // Get robot position and rotation along the path
   const getRobotPositionAndRotation = (progress: number) => {
-    if (points.length < 2) return null
+    if (points.length === 0) return null
+
+    if (points.length === 1) {
+      return {
+        x: points[0].x,
+        y: points[0].y,
+        rotation: (points[0].theta - 90) * (Math.PI / 180)
+      }
+    }
 
     // Calculate total path length
     let totalLength = 0
@@ -640,8 +728,8 @@ function App() {
         fieldY: fieldYR,
         id: nextId,
         theta: 0,
-        timeout: 1000,
-        speed: 70,
+        timeout: points.length === 0 ? 0 : 1000,
+        speed: 127,
         forwards: true
       }
       setPoints([...points, newPoint])
@@ -687,11 +775,19 @@ function App() {
     if (draggingId === null) return
 
     const { fieldX, fieldY } = pixelToFieldCoords(x, y)
-    // Round to 2 decimal places
-    const fieldXRounded = Math.round(fieldX * 10) / 10
-    const fieldYRounded = Math.round(fieldY * 10) / 10
+    const fieldXRounded = snapToWholeInch
+      ? Math.round(fieldX)
+      : Math.round(fieldX * 10) / 10
+    const fieldYRounded = snapToWholeInch
+      ? Math.round(fieldY)
+      : Math.round(fieldY * 10) / 10
+    const snappedPixelCoords = snapToWholeInch
+      ? fieldToPixelCoords(fieldXRounded, fieldYRounded)
+      : { x, y }
     setPoints(points.map(p =>
-      p.id === draggingId ? { ...p, x, y, fieldX: fieldXRounded, fieldY: fieldYRounded, theta: p.theta } : p
+      p.id === draggingId
+        ? { ...p, x: snappedPixelCoords.x, y: snappedPixelCoords.y, fieldX: fieldXRounded, fieldY: fieldYRounded, theta: p.theta }
+        : p
     ))
   }
 
@@ -755,7 +851,9 @@ function App() {
                   try {
                     const importedPoints = JSON.parse(event.target?.result as string)
                     if (Array.isArray(importedPoints)) {
-                      setPoints(importedPoints)
+                      setPoints(importedPoints.map((point: Point, index: number) => (
+                        index === 0 ? { ...point, timeout: 0 } : point
+                      )))
                       setSelectedId(null)
                       // Reset nextId to be higher than all imported ids
                       const maxId = Math.max(...importedPoints.map((p: Point) => p.id), -1)
@@ -801,7 +899,7 @@ function App() {
                     <span>{Math.round(getEffectiveTheta(index) * 10) / 10}°</span>
                     <span>{point.timeout}ms</span>
                     <span>{point.forwards ? "Forwards" : "Backwards"}</span>
-                    <span>Speed: {point.speed}</span>
+                    <span>Speed: {point.speed} ({(point.speed / 127 * maxSpeed).toFixed(1)} in/s)</span>
                   </div>
                 ))}
               </div>
@@ -860,10 +958,23 @@ function App() {
                 value={fieldImageSrc}
                 onChange={setFieldImageSrc}
                 options={[
-                  { value: "h2h", label: "Vex V5RC Push Back H2H" },
-                  { value: "skills", label: "Vex V5RC Push Back Skills" }
+                  { value: "override_skills", label: "Vex V5RC Override Skills" },
+                  // { value: "skills", label: "Vex V5RC Push Back Skills" }
                 ]}
               />
+
+              <div className="range-setting">
+                <label htmlFor="max-speed">Bot Speed: {maxSpeed.toFixed(1)} in/s</label>
+                <input
+                  id="max-speed"
+                  type="range"
+                  min="0.1"
+                  max="100"
+                  step="0.1"
+                  value={maxSpeed}
+                  onChange={(e) => setMaxSpeed(parseFloat(e.target.value))}
+                />
+              </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
 
@@ -910,6 +1021,11 @@ function App() {
                   iconSrc='/world.svg'
                   checked={showGuideCoordinates}
                   onChange={(checked) => setShowGuideCoordinates(checked)}
+                />
+                <Checkbox
+                  label="Snap"
+                  checked={snapToWholeInch}
+                  onChange={(checked) => setSnapToWholeInch(checked)}
                 />
               </div>
 
@@ -1029,7 +1145,7 @@ function App() {
                       step={100}
                     />
                     <NumberInput
-                      label="Speed (1-127)"
+                      label={`Speed (1-127, ${(selectedPoint.speed / 127 * maxSpeed).toFixed(1)} in/s)`}
                       value={selectedPoint.speed}
                       onChange={(v) => setPoints(points.map(p => p.id === selectedId ? { ...p, speed: v } : p))}
                       min={1}
@@ -1067,14 +1183,29 @@ function App() {
             </div>
             <div id="path-control" className='container'>
               <h3>Route</h3>
+              <div>Total Time: {(getTotalRouteTime() / 1000).toFixed(2)}s</div>
+              <div>Stopwatch: {formatStopwatch(stopwatchMs)}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                Progress: {(robotProgress * 100).toFixed(0)}%
+                Progress: {(() => {
+                  const totalTime = getTotalSimulationDuration()
+                  return `${(totalTime > 0 ? (stopwatchMs / totalTime) * 100 : 0).toFixed(0)}%`
+                })()}
                 <input
                   type="range"
                   min="0"
                   max="100"
-                  value={robotProgress * 100}
-                  onChange={(e) => setRobotProgress(parseFloat(e.target.value) / 100)}
+                  value={(() => {
+                    const totalTime = getTotalSimulationDuration()
+                    return totalTime > 0 ? (stopwatchMs / totalTime) * 100 : 0
+                  })()}
+                  onChange={(e) => {
+                    const progress = parseFloat(e.target.value) / 100
+                    const totalTime = getTotalSimulationDuration()
+                    const elapsedMs = totalTime * progress
+                    setIsRunning(false)
+                    setStopwatchMs(elapsedMs)
+                    setRobotProgress(getProgressFromElapsedTime(elapsedMs))
+                  }}
                   step="1"
                   style={{ width: '100%' }}
                 />
@@ -1085,7 +1216,10 @@ function App() {
                   onClick={() => {
                     if (!isRunning) {
                       // If at end, reset to start when running
-                      if (robotProgress >= 1) setRobotProgress(0)
+                      if (stopwatchMs >= getTotalSimulationDuration()) {
+                        setRobotProgress(0)
+                        setStopwatchMs(0)
+                      }
                       setIsRunning(true)
                       setShowBot(true)
                     } else {

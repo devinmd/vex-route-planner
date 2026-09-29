@@ -6,7 +6,7 @@ export interface Point {
   id: number;
   theta: number; // heading in degrees: 0=up, 90=right, 180=down, 270=left
   timeout: number; // in milliseconds, default 1000
-  speed: number; // 1-127, default 70
+  speed: number; // 1-127 percentage of configured max speed, default 127
   forwards: boolean; // true=forwards, false=backwards
 }
 

@@ -42,6 +42,7 @@
 
 #field canvas {
   max-width: 100%;
+  border-radius: 0.5rem;
   max-height: 100%;
   object-fit: contain;
 }
@@ -107,6 +108,16 @@ input[type="number"] {
 .number-input {
   display: flex;
   flex-direction: column;
+}
+
+.range-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.range-setting input[type="range"] {
+  width: 100%;
 }
 
 .number-input .buttons {
