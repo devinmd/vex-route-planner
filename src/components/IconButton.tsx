@@ -2,13 +2,13 @@ import type { IconButtonProps } from '../types'
 
 export function IconButton({
   onClick,
-  iconSrc,
+  icon,
   text,
   isActive = false,
-  activeIconSrc,
+  activeIcon,
   size = 18,
 }: IconButtonProps) {
-  const currentIcon = isActive && activeIconSrc ? activeIconSrc : iconSrc
+  const Icon = isActive && activeIcon ? activeIcon : icon
   const isIconOnly = text === ''
 
   return (
@@ -22,15 +22,7 @@ export function IconButton({
         justifyContent: 'center',
       }}
     >
-      <img
-        src={currentIcon}
-        style={{
-          width: size,
-          height: size,
-          pointerEvents: 'none',
-          filter: 'brightness(0) invert(0.95)',
-        }}
-      />
+      <Icon size={size} style={{ pointerEvents: 'none', flexShrink: 0 }} />
       {!isIconOnly && text}
     </button>
   )

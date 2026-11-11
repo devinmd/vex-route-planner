@@ -1,5 +1,5 @@
-# vex Route Builder
+# VEX Route Builder
 
-for vex v5rc 
+for VEX V5RC 
 
 inspired by https://github.com/Jerrylum/path.jerryio

@@ -30,9 +30,9 @@
 }
 
 #field {
-  width: 100%;
-  flex-grow: 1;
-  border-right: 1px solid var(--bg-l2);
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -52,15 +52,96 @@
   font-size: 16px;
   width: 100%;
   font-size: 14px;
-  border-right: 1px solid var(--bg-l2);
   border-bottom: 1px solid var(--bg-l2);
   overflow: auto;
 }
 
 #code-preview {
   overflow: auto;
-  border-right: 1px solid var(--bg-l2);
-  width: 600px;
+  width: 100%;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#main.resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+#main.resizing canvas {
+  pointer-events: none;
+}
+
+/* Draggable divider between the field and a side panel */
+.resizer {
+  position: relative;
+  flex: none;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.resizer::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--bg-l2);
+  transition: 100ms;
+}
+
+.resizer:hover::after,
+#main.resizing .resizer:active::after {
+  background: var(--bg-l3);
+  width: 3px;
+  left: 2px;
+}
+
+.resizer.collapsed {
+  cursor: default;
+}
+
+.resizer.collapsed:hover::after {
+  background: var(--bg-l2);
+  width: 1px;
+  left: 3px;
+}
+
+.panel-toggle {
+  position: absolute;
+  top: 0.5rem;
+  z-index: 1;
+  width: 2rem;
+  min-width: 0;
+  height: 2rem;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-l1);
+  border-radius: 0.5rem;
+  line-height: 1;
+}
+
+.panel-toggle.left {
+  left: 0.5rem;
+}
+
+.panel-toggle.right {
+  right: 0.5rem;
+}
+
+.panel-toggle svg {
+  pointer-events: none;
 }
 
 #point-list div {
@@ -203,4 +284,16 @@ input[type="number"] {
   box-sizing: border-box;
   height: 2rem;
   gap: 1rem;
+}
+
+/* Right panel: keep every section at its natural height and scroll the panel
+   when the window is too short, instead of clipping options. */
+#right-panel {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#right-panel .container {
+  flex: none;
+  overflow: visible;
 }

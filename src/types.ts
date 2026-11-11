@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react';
+
 export interface Point {
   x: number;
   y: number;
@@ -21,10 +23,10 @@ export interface NumberInputProps {
 
 export interface IconButtonProps {
   onClick: () => void;
-  iconSrc: string;
+  icon: LucideIcon;
   text: string;
   isActive?: boolean;
-  activeIconSrc?: string;
+  activeIcon?: LucideIcon;
   size?: number;
 }
 
@@ -38,6 +40,6 @@ export interface SelectInputProps {
 export interface CheckboxProps {
   label: string;
   checked: boolean;
-  iconSrc?: string;
+  icon?: LucideIcon;
   onChange: (checked: boolean) => void; 
 }

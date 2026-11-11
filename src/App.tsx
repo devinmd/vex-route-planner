@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import './App.css'
+import { ArrowBigRight, ArrowLeft, ArrowRight, Bot, ChevronLeft, ChevronRight, FlipHorizontal, FlipVertical, Globe, Magnet, Pause, Play, Spline } from 'lucide-react'
 import { Analytics } from "@vercel/analytics/react"
 import { fieldImages } from './constants'
 import type { Point } from './types'
@@ -7,6 +8,25 @@ import { NumberInput } from './components/NumberInput'
 import { IconButton } from './components/IconButton'
 import { SelectInput } from './components/SelectInput'
 import { Checkbox } from './components/Checkbox'
+
+const MIN_PANEL_WIDTH = 220
+
+function PanelToggle({ collapsed, side, onToggle }: { collapsed: boolean; side: 'left' | 'right'; onToggle: () => void }) {
+  // Chevron points toward the direction the panel will move: collapsing a left panel points left, expanding points right.
+  const pointsLeft = (side === 'left') !== collapsed
+  const label = `${collapsed ? 'Expand' : 'Collapse'} ${side} panel`
+  return (
+    <button
+      className={`panel-toggle ${side}`}
+      aria-label={label}
+      title={label}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={onToggle}
+    >
+      {pointsLeft ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+    </button>
+  )
+}
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -31,6 +51,37 @@ function App() {
   const [showGuideCoordinates, setShowGuideCoordinates] = useState<boolean>(true)
   const [snapToWholeInch, setSnapToWholeInch] = useState<boolean>(true)
   const hasInitializedDefaultPoint = useRef(false)
+  const [leftWidth, setLeftWidth] = useState<number>(600)
+  const [rightWidth, setRightWidth] = useState<number>(340)
+  const [leftCollapsed, setLeftCollapsed] = useState<boolean>(false)
+  const [rightCollapsed, setRightCollapsed] = useState<boolean>(false)
+  const [isResizing, setIsResizing] = useState<boolean>(false)
+
+  // Drag a panel edge to resize it. `direction` is +1 when dragging right grows the panel (left panel), -1 for the right panel.
+  const startResize = (e: React.PointerEvent, side: 'left' | 'right') => {
+    if ((side === 'left' && leftCollapsed) || (side === 'right' && rightCollapsed)) return
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = side === 'left' ? leftWidth : rightWidth
+    const direction = side === 'left' ? 1 : -1
+    const setWidth = side === 'left' ? setLeftWidth : setRightWidth
+    setIsResizing(true)
+
+    const onMove = (ev: PointerEvent) => {
+      const maxWidth = Math.max(MIN_PANEL_WIDTH, window.innerWidth * 0.6)
+      const next = startWidth + (ev.clientX - startX) * direction
+      setWidth(Math.min(maxWidth, Math.max(MIN_PANEL_WIDTH, next)))
+    }
+    const onUp = () => {
+      setIsResizing(false)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  }
 
   // Helper to get the effective theta for a point
   // For non-last points: angle to next point
@@ -878,10 +929,14 @@ function App() {
             Import Route from JSON
           </button>
         </div>
-        <div id="main">
+        <div id="main" className={isResizing ? 'resizing' : ''}>
 
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div
+            className="side-panel"
+            id="left-panel"
+            style={leftCollapsed ? { display: 'none' } : { width: leftWidth }}
+          >
 
             <div className="container" id="point-list">
               <h3>Points</h3>
@@ -934,7 +989,15 @@ function App() {
             </div>
           </div>
 
+          <div
+            className={`resizer ${leftCollapsed ? 'collapsed' : ''}`}
+            onPointerDown={(e) => startResize(e, 'left')}
+          >
+          </div>
+
           <div className="container" id="field">
+            <PanelToggle side="left" collapsed={leftCollapsed} onToggle={() => setLeftCollapsed(!leftCollapsed)} />
+            <PanelToggle side="right" collapsed={rightCollapsed} onToggle={() => setRightCollapsed(!rightCollapsed)} />
             <canvas
               ref={canvasRef}
               tabIndex={0}
@@ -948,7 +1011,17 @@ function App() {
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div
+            className={`resizer ${rightCollapsed ? 'collapsed' : ''}`}
+            onPointerDown={(e) => startResize(e, 'right')}
+          >
+          </div>
+
+          <div
+            className="side-panel"
+            id="right-panel"
+            style={rightCollapsed ? { display: 'none' } : { width: rightWidth }}
+          >
 
             <div id="configuration" className='container'>
               <h3>Configuration</h3>
@@ -958,7 +1031,8 @@ function App() {
                 value={fieldImageSrc}
                 onChange={setFieldImageSrc}
                 options={[
-                  { value: "override_skills", label: "Vex V5RC Override Skills" },
+                  { value: "override_skills", label: "VEX V5RC Override Skills" },
+                  { value: "override_h2h", label: "VEX V5RC Override H2H" },
                   // { value: "skills", label: "Vex V5RC Push Back Skills" }
                 ]}
               />
@@ -1000,30 +1074,31 @@ function App() {
                 <Checkbox
                   label="Show Bot"
                   checked={showBot}
-                  iconSrc='/robot.svg'
+                  icon={Bot}
 
                   onChange={(checked) => setShowBot(checked)}
                 />
                 <Checkbox
                   label="Show Lines"
                   checked={showLines}
-                  iconSrc='/line.svg'
+                  icon={Spline}
                   onChange={(checked) => setShowLines(checked)}
                 />
                 <Checkbox
                   label="Show Arrows"
-                  iconSrc='/arrow-big-right.svg'
+                  icon={ArrowBigRight}
                   checked={showArrows}
                   onChange={(checked) => setShowArrows(checked)}
                 />
                 <Checkbox
                   label="Show Guide Coordinates"
-                  iconSrc='/world.svg'
+                  icon={Globe}
                   checked={showGuideCoordinates}
                   onChange={(checked) => setShowGuideCoordinates(checked)}
                 />
                 <Checkbox
                   label="Snap"
+                  icon={Magnet}
                   checked={snapToWholeInch}
                   onChange={(checked) => setSnapToWholeInch(checked)}
                 />
@@ -1038,7 +1113,7 @@ function App() {
                       y: -p.y + (image ? image.height : 0)
                     })))
                   }}
-                  iconSrc="/flip-horizontal.svg"
+                  icon={FlipHorizontal}
                   text="Flip X"
                 />
                 <IconButton
@@ -1049,7 +1124,7 @@ function App() {
                       x: -p.x + (image ? image.width : 0)
                     })))
                   }}
-                  iconSrc="/flip-vertical.svg"
+                  icon={FlipVertical}
                   text="Flip Y"
                 />
               </div>
@@ -1072,7 +1147,7 @@ function App() {
                           const index = points.findIndex(p => p.id === selectedId);
                           setSelectedId(index > 0 ? index - 1 : points.length - 1);
                         }}
-                        iconSrc="/arrow-left.svg"
+                        icon={ArrowLeft}
                         text=""
                       />
 
@@ -1081,7 +1156,7 @@ function App() {
                           const index = points.findIndex(p => p.id === selectedId);
                           setSelectedId(index < points.length - 1 ? index + 1 : 0);
                         }}
-                        iconSrc="/arrow-right.svg"
+                        icon={ArrowRight}
                         text=""
                       />
                     </div>
@@ -1228,11 +1303,7 @@ function App() {
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  <img
-                    src={isRunning ? '/player-pause.svg' : '/player-play.svg'}
-                    alt={isRunning ? 'Pause' : 'Run'}
-                    style={{ width: 18, height: 18, pointerEvents: 'none', filter: 'brightness(0) invert(0.95)' }}
-                  />
+                  {isRunning ? <Pause size={18} style={{ pointerEvents: 'none' }} /> : <Play size={18} style={{ pointerEvents: 'none' }} />}
                   {isRunning ? 'Pause' : 'Run'}
                 </button>
               </div>

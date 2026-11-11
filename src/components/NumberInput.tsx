@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Minus, Plus } from 'lucide-react'
 import type { NumberInputProps } from '../types'
 
 export function NumberInput({ label, value, onChange, min = 1, max, step = 1, disableButtons = false }: NumberInputProps & { disableButtons?: boolean }) {
@@ -30,7 +31,7 @@ export function NumberInput({ label, value, onChange, min = 1, max, step = 1, di
       {label}
       <div className='buttons'>{
         !disableButtons &&
-        <button onClick={() => onChange(Math.max(min, value - step))} disabled={disableButtons}>-</button>}
+        <button onClick={() => onChange(Math.max(min, value - step))} disabled={disableButtons}><Minus size={16} /></button>}
         <input
           type="number"
           value={inputValue}
@@ -43,7 +44,7 @@ export function NumberInput({ label, value, onChange, min = 1, max, step = 1, di
         />
         {
           !disableButtons &&
-          <button onClick={() => onChange(max !== undefined ? Math.min(max, value + step) : value + step)} disabled={disableButtons}>+</button>}
+          <button onClick={() => onChange(max !== undefined ? Math.min(max, value + step) : value + step)} disabled={disableButtons}><Plus size={16} /></button>}
       </div>
     </div>
   )
